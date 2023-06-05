@@ -1,0 +1,10 @@
+{
+  "background_color": "#ffffff",
+  "description": "UnoWinUISample",
+  "display": "standalone",
+  "name": "UnoWinUISample",
+  "short_name": "UnoWinUISample",
+  "start_url": "/index.html",
+  "theme_color": "#ffffff",
+  "scope": "/"
+}
