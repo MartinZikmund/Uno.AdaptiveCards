@@ -8,6 +8,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="AdaptiveCards" Version="3.0.0" />
 		<PackageReference Include="Uno.WinUI" Version="4.8.33" />
 		<PackageReference Include="Uno.Resizetizer" Version="1.0.4" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.1.0" />
@@ -43,7 +44,7 @@
 				<Compile Update="**\*.xaml.cs">
 					<DependentUpon>%(Filename)</DependentUpon>
 				</Compile>
-				<PRIResource Include ="**\*.resw" />
+				<PRIResource Include="**\*.resw" />
 			</ItemGroup>
 		</Otherwise>
 	</Choose>
@@ -51,5 +52,9 @@
 	<ItemGroup>
 		<UnoImage Include="Assets\**\*.svg" />
 		<UpToDateCheckInput Include="**\*.xaml" Exclude="bin\**\*.xaml;obj\**\*.xaml" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\..\Library\AdaptiveCards.Rendering.UnoWinUI\AdaptiveCards.Rendering.UnoWinUI.csproj" />
 	</ItemGroup>
 </Project>

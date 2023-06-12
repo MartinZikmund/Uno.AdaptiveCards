@@ -10,5 +10,7 @@
 	<StackPanel HorizontalAlignment="Center"
 				VerticalAlignment="Center">
 		<TextBlock Text="Hello Uno Platform" />
-	</StackPanel>
+        <Border x:Name="Container" Width="300" Height="300" Background="Red" />
+
+    </StackPanel>
 </Page>

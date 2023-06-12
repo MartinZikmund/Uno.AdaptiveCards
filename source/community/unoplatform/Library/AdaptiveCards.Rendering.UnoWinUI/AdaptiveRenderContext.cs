@@ -14,9 +14,13 @@ public class AdaptiveRenderContext
     AdaptiveElementRendererRegistration ElementRenderers { get; }
 
     AdaptiveActionRendererRegistration ActionRenderers { get; }
+
     AdaptiveCardResourceResolvers ResourceResolvers { get; }
+
     AdaptiveActionInvoker ActionInvoker { get; }
+
     AdaptiveMediaEventInvoker MediaEventInvoker { get; }
+
     Microsoft.UI.Xaml.ResourceDictionary OverrideStyles { get; }
     AdaptiveInputs UserInputs { get; }
 
@@ -27,9 +31,12 @@ public class AdaptiveRenderContext
     Windows.Foundation.IReference<AdaptiveCards.ObjectModel.WinUI3.HAlignment> HorizontalContentAlignment;
 
     void AddInputValue(IAdaptiveInputValue inputValue, AdaptiveRenderArgs renderArgs);
+
     void LinkSubmitActionToCard(AdaptiveCards.ObjectModel.WinUI3.IAdaptiveActionElement submitAction,
                                 AdaptiveRenderArgs renderArgs);
+
     void LinkCardToParent(AdaptiveCards.ObjectModel.WinUI3.AdaptiveCard card, AdaptiveRenderArgs renderArgs);
+
     IAdaptiveInputValue GetInputValue(AdaptiveCards.ObjectModel.WinUI3.IAdaptiveInputElement inputElement);
 
     public void AddError(ErrorStatusCode statusCode, string message) => throw new NotImplementedException();
