@@ -58,22 +58,26 @@ jobs:
           global-json-file: source/uno/global.json
       - name: Install workloads
         run: dotnet workload install android wasm-tools
+      - uses: microsoft/setup-msbuild@v2
+      # WinUI class libraries containing XAML must be built with msbuild (Uno.Sdk UNOB0008).
       - name: Build renderer
-        run: dotnet build AdaptiveCards.Rendering.Uno -c Release -p:OverrideTargetFrameworks="net10.0-windows10.0.26100%3Bnet10.0-desktop%3Bnet10.0-android"
+        run: msbuild AdaptiveCards.Rendering.Uno/AdaptiveCards.Rendering.Uno.csproj -restore -p:Configuration=Release -p:OverrideTargetFrameworks="net10.0-windows10.0.26100%3Bnet10.0-desktop%3Bnet10.0-android" -v:m
       - name: Build visualizer (WinAppSdk)
-        run: dotnet build AdaptiveCards.Visualizer.Uno -c Release -p:OverrideTargetFrameworks=net10.0-windows10.0.26100
+        run: msbuild AdaptiveCards.Visualizer.Uno/AdaptiveCards.Visualizer.Uno.csproj -restore -p:Configuration=Release -p:OverrideTargetFrameworks=net10.0-windows10.0.26100 -v:m
 
   macos:
     name: macOS (iOS)
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: source/uno/global.json
+      - name: Select newest Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)" && xcodebuild -version
       - name: Install workloads
         run: dotnet workload install ios
       - name: Build renderer (iOS)
         run: dotnet build AdaptiveCards.Rendering.Uno -c Release -p:OverrideTargetFrameworks=net10.0-ios
       - name: Build visualizer (iOS simulator)
-        run: dotnet build AdaptiveCards.Visualizer.Uno -c Release -p:OverrideTargetFrameworks=net10.0-ios -p:RuntimeIdentifier=iossimulator-arm64
+        run: dotnet build AdaptiveCards.Visualizer.Uno -c Release -p:OverrideTargetFrameworks=net10.0-ios -p:RuntimeIdentifier=iossimulator-arm64 -p:ValidateXcodeVersion=false
