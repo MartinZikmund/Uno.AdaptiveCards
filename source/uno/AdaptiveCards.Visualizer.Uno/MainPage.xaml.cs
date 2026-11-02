@@ -28,6 +28,21 @@ public sealed partial class MainPage : Page
                 return;
             }
 #endif
+            if (SelfTests.SelfTestRunner.TryStart(this))
+            {
+                return;
+            }
+            var requested = GetRequestedSample();
+            if (requested is not null)
+            {
+                var match = SampleList.Items.OfType<string>().FirstOrDefault(n => n.Contains(requested, StringComparison.OrdinalIgnoreCase));
+                if (match is not null)
+                {
+                    SampleList.SelectedItem = match;
+                    SampleList.ScrollIntoView(match);
+                }
+            }
+
             if (SampleList.Items.Count > 0 && SampleList.SelectedIndex < 0)
             {
                 SampleList.SelectedIndex = 0;
@@ -36,6 +51,29 @@ public sealed partial class MainPage : Page
     }
 
     public AdaptiveCardRenderer Renderer => _renderer;
+
+    /// <summary>Initial sample: "--sample name" on the command line or "?sample=name" in the browser.</summary>
+    private static string? GetRequestedSample()
+    {
+#if __WASM__
+        var search = global::Uno.Foundation.WebAssemblyRuntime.InvokeJS("window.location.search") ?? string.Empty;
+        foreach (var part in search.TrimStart('?').Split('&'))
+        {
+            if (part.StartsWith("sample=", StringComparison.OrdinalIgnoreCase))
+            {
+                return Uri.UnescapeDataString(part.Substring("sample=".Length));
+            }
+        }
+
+        return null;
+#else
+        var args = Environment.GetCommandLineArgs();
+        var index = Array.IndexOf(args, "--sample");
+        return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
+#endif
+    }
+
+    public string CurrentJson => JsonEditor.Text ?? string.Empty;
 
     public void SetCardWidth(double width)
     {

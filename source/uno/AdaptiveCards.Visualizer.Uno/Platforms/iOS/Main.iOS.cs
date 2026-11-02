@@ -1,5 +1,5 @@
 using UIKit;
-using Uno.UI.Hosting;
+using global::Uno.UI.Hosting;
 
 namespace AdaptiveCards.Visualizer.Uno.iOS;
 

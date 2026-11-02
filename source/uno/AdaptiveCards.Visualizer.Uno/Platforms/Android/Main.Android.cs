@@ -9,7 +9,7 @@ using Android.Runtime;
 using Android.Views;
 using Android.Widget;
 using Microsoft.UI.Xaml.Media;
-using Uno.UI.Hosting;
+using global::Uno.UI.Hosting;
 
 namespace AdaptiveCards.Visualizer.Uno.Droid;
 
@@ -20,7 +20,7 @@ namespace AdaptiveCards.Visualizer.Uno.Droid;
     HardwareAccelerated = true,
     Theme = "@style/Theme.App.Starting"
 )]
-public class Application : Uno.UI.Runtime.Android.NativeApplication
+public class Application : global::Uno.UI.Runtime.Android.NativeApplication
 {
     static Application()
     {

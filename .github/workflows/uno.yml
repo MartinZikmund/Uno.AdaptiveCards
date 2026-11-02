@@ -30,13 +30,17 @@ jobs:
       - name: Object model tests
         run: dotnet test AdaptiveCards.ObjectModel.Uno.Tests -c Release
       - name: Build renderer (all Linux-buildable targets)
-        run: dotnet build AdaptiveCards.Rendering.Uno -c Release -p:EnableMobileTargets=true -p:OverrideTargetFrameworks="net10.0;net10.0-desktop;net10.0-browserwasm;net10.0-android"
+        run: dotnet build AdaptiveCards.Rendering.Uno -c Release -p:EnableMobileTargets=true -p:OverrideTargetFrameworks="net10.0%3Bnet10.0-desktop%3Bnet10.0-browserwasm%3Bnet10.0-android"
       - name: Build visualizer (desktop, wasm, android)
-        run: dotnet build AdaptiveCards.Visualizer.Uno -c Release -p:EnableMobileTargets=true -p:OverrideTargetFrameworks="net10.0-desktop;net10.0-browserwasm;net10.0-android"
-      - name: Render all samples (desktop, headless)
+        run: dotnet build AdaptiveCards.Visualizer.Uno -c Release -p:EnableMobileTargets=true -p:OverrideTargetFrameworks="net10.0-desktop%3Bnet10.0-browserwasm%3Bnet10.0-android"
+      - name: Interaction self-tests (desktop, headless)
         run: |
           sudo apt-get update && sudo apt-get install -y xvfb
-          dotnet build AdaptiveCards.Visualizer.Uno -c Release -f net10.0-desktop
+          dotnet build AdaptiveCards.Visualizer.Uno -c Release -p:OverrideTargetFrameworks=net10.0-desktop
+          xvfb-run -a -s "-screen 0 1600x1200x24" dotnet AdaptiveCards.Visualizer.Uno/bin/Release/net10.0-desktop/AdaptiveCards.Visualizer.Uno.dll --selftest "$RUNNER_TEMP/selftest.txt" || (cat "$RUNNER_TEMP/selftest.txt"; exit 1)
+          cat "$RUNNER_TEMP/selftest.txt"
+      - name: Render all samples (desktop, headless)
+        run: |
           xvfb-run -a -s "-screen 0 1600x1200x24" dotnet AdaptiveCards.Visualizer.Uno/bin/Release/net10.0-desktop/AdaptiveCards.Visualizer.Uno.dll --screenshots "$RUNNER_TEMP/screenshots" "v1.6"
           cat "$RUNNER_TEMP/screenshots/render-log.txt"
       - uses: actions/upload-artifact@v4
@@ -45,7 +49,7 @@ jobs:
           path: ${{ runner.temp }}/screenshots
 
   windows:
-    name: Windows (WinAppSdk, android)
+    name: Windows (WinAppSdk, desktop, android)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,9 +59,9 @@ jobs:
       - name: Install workloads
         run: dotnet workload install android wasm-tools
       - name: Build renderer
-        run: dotnet build AdaptiveCards.Rendering.Uno -c Release -p:OverrideTargetFrameworks="net10.0-windows10.0.26100;net10.0-desktop"
+        run: dotnet build AdaptiveCards.Rendering.Uno -c Release -p:OverrideTargetFrameworks="net10.0-windows10.0.26100%3Bnet10.0-desktop%3Bnet10.0-android"
       - name: Build visualizer (WinAppSdk)
-        run: dotnet build AdaptiveCards.Visualizer.Uno -c Release -f net10.0-windows10.0.26100
+        run: dotnet build AdaptiveCards.Visualizer.Uno -c Release -p:OverrideTargetFrameworks=net10.0-windows10.0.26100
 
   macos:
     name: macOS (iOS)
@@ -70,6 +74,6 @@ jobs:
       - name: Install workloads
         run: dotnet workload install ios
       - name: Build renderer (iOS)
-        run: dotnet build AdaptiveCards.Rendering.Uno -c Release -p:OverrideTargetFrameworks="net10.0-ios"
+        run: dotnet build AdaptiveCards.Rendering.Uno -c Release -p:OverrideTargetFrameworks=net10.0-ios
       - name: Build visualizer (iOS simulator)
-        run: dotnet build AdaptiveCards.Visualizer.Uno -c Release -f net10.0-ios -p:RuntimeIdentifier=iossimulator-arm64
+        run: dotnet build AdaptiveCards.Visualizer.Uno -c Release -p:OverrideTargetFrameworks=net10.0-ios -p:RuntimeIdentifier=iossimulator-arm64

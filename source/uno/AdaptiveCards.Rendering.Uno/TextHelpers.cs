@@ -137,7 +137,7 @@ namespace AdaptiveCards.Rendering.Uno
             uint fontSize = Util.GetFontSizeFromFontType(hostConfig, fontType, adaptiveTextSize);
             string fontFamilyName = Util.GetFontFamilyFromFontType(hostConfig, fontType);
             FontWeight xamlFontWeight = Util.GetFontWeightFromStyle(hostConfig, fontType, adaptiveTextWeight);
-            return new TextElementStyle(foreground, fontSize, xamlFontWeight, new FontFamily(fontFamilyName));
+            return new TextElementStyle(foreground, fontSize, xamlFontWeight, Util.CreateFontFamily(fontFamilyName));
         }
 
         public static void StyleTextElement(

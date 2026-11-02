@@ -246,6 +246,25 @@ namespace AdaptiveCards.Rendering.Uno
             return fontFamily;
         }
 
+        /// <summary>
+        /// Creates the XAML FontFamily for a host config font family name. "Segoe UI" (the shared model's default) is
+        /// only guaranteed to exist on Windows; on other Uno targets a missing family falls back to an arbitrary
+        /// (often monospace) font, so it is mapped to the platform's default UI font instead.
+        /// </summary>
+        public static Microsoft.UI.Xaml.Media.FontFamily CreateFontFamily(string fontFamilyName)
+        {
+#if HAS_UNO
+            if (string.IsNullOrEmpty(fontFamilyName) || string.Equals(fontFamilyName, "Segoe UI", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!OperatingSystem.IsWindows())
+                {
+                    return Microsoft.UI.Xaml.Media.FontFamily.XamlAutoFontFamily;
+                }
+            }
+#endif
+            return new Microsoft.UI.Xaml.Media.FontFamily(fontFamilyName);
+        }
+
         public static uint GetFontSizeFromFontType(AdaptiveHostConfig hostConfig, FontType fontType, TextSize desiredSize)
         {
             var fontTypeDefinition = GetFontType(hostConfig, fontType);

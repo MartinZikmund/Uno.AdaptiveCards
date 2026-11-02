@@ -1,5 +1,5 @@
 using Foundation;
-using Uno.UI.Runtime.AppleUIKit;
+using global::Uno.UI.Runtime.AppleUIKit;
 
 namespace AdaptiveCards.Visualizer.Uno.iOS;
 
