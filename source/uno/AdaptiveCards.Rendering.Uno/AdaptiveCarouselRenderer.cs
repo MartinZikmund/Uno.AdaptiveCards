@@ -70,6 +70,10 @@ namespace AdaptiveCards.Rendering.Uno
             {
                 pipsPager.Orientation = Orientation.Vertical;
                 pipsPager.VerticalAlignment = VerticalAlignment.Center;
+                // Uno's vertical PipsPager can be measured with only room for a single pip; reserve the space for all
+                // visible pips (WinUI's default pip slot is 12px tall).
+                pipsPager.MinHeight = Math.Min(carousel.Pages.Count, pipsPager.MaxVisiblePips) * 12 + 8;
+
                 TrySetVerticalItemsPanel(carouselUI);
             }
             else
@@ -132,7 +136,12 @@ namespace AdaptiveCards.Rendering.Uno
             stackPanel.Children.Add(pipsPager);
             if (isVertical)
             {
-                Grid.SetColumn(pipsPager, 1);
+                // Uno's vertical PipsPager realizes only a single pip (issue #9). Keep the PipsPager as the selection
+                // state (it is wired to the FlipView above) but display a simple vertical pip indicator instead.
+                pipsPager.Visibility = Visibility.Collapsed;
+                var indicator = new VerticalPipsIndicator(pipsPager);
+                Grid.SetColumn(indicator, 1);
+                stackPanel.Children.Add(indicator);
             }
 
             var featureRegistration = context.FeatureRegistration;

@@ -67,6 +67,19 @@ internal static class ScreenshotRunner
                         await SaveAsync(element, file);
                     }
 
+                    if (Environment.GetEnvironmentVariable("AC_DUMP_PIPS") == "1" && element is not null)
+                    {
+                        foreach (var pager in FindAll<PipsPager>(element))
+                        {
+                            log.Add($"PIPS pages={pager.NumberOfPages} orient={pager.Orientation} size={pager.ActualWidth:0}x{pager.ActualHeight:0}");
+                            foreach (var b in FindAll<Button>(pager))
+                            {
+                                var t = b.TransformToVisual(pager).TransformPoint(new Windows.Foundation.Point(0, 0));
+                                log.Add($"  pip {b.Name} at {t.X:0},{t.Y:0} size {b.ActualWidth:0}x{b.ActualHeight:0} vis={b.Visibility}");
+                            }
+                        }
+                    }
+
                     var problems = rendered is null
                         ? "no result"
                         : string.Join(" | ", rendered.Errors.Select(e => "E:" + e.StatusCode + " " + e.Message)
@@ -92,6 +105,23 @@ internal static class ScreenshotRunner
 
     // Cards referencing remote images need time for downloads to complete.
     private static int SettleMilliseconds(string name) => int.TryParse(Environment.GetEnvironmentVariable("AC_SCREENSHOT_DELAY"), out var d) ? d : 2500;
+
+    private static IEnumerable<T> FindAll<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (int i = 0; i < Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is T t)
+            {
+                yield return t;
+            }
+
+            foreach (var d in FindAll<T>(child))
+            {
+                yield return d;
+            }
+        }
+    }
 
     private static async Task SaveAsync(UIElement element, string file)
     {

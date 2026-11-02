@@ -22,3 +22,7 @@ Additional behavioral differences handled in the port (not necessarily bugs):
   carousels) causes a `LayoutCycleException` on Uno; the port uses `CarouselPageHost` to report natural page heights.
 - `FlipView` does not page with a vertical `ItemsPanel` on Uno; vertical carousels (an extension over WinUI3) use a
   selected-page template.
+| [#9](https://github.com/MartinZikmund/Uno.AdaptiveCards/issues/9) | Vertical `PipsPager` realizes a single pip | vertical carousel page indicator | `VerticalPipsIndicator` |
+
+Also noted: `PointerPointProperties.MouseWheelDelta` is flagged not implemented on Android (used only for mouse-wheel
+paging of vertical carousels; touch swipes work).
