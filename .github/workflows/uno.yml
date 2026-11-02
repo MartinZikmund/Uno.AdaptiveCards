@@ -1,0 +1,75 @@
+name: Uno Platform renderer
+
+on:
+  push:
+    branches: [ main, 'claude/**' ]
+    paths: [ 'source/uno/**', 'samples/**', '.github/workflows/uno.yml' ]
+  pull_request:
+    paths: [ 'source/uno/**', 'samples/**', '.github/workflows/uno.yml' ]
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: source/uno
+
+jobs:
+  linux:
+    name: Linux (object model tests, desktop, wasm, android)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: source/uno/global.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: microsoft
+          java-version: '17'
+      - name: Install workloads
+        run: dotnet workload install android wasm-tools
+      - name: Object model tests
+        run: dotnet test AdaptiveCards.ObjectModel.Uno.Tests -c Release
+      - name: Build renderer (all Linux-buildable targets)
+        run: dotnet build AdaptiveCards.Rendering.Uno -c Release -p:EnableMobileTargets=true -p:OverrideTargetFrameworks="net10.0;net10.0-desktop;net10.0-browserwasm;net10.0-android"
+      - name: Build visualizer (desktop, wasm, android)
+        run: dotnet build AdaptiveCards.Visualizer.Uno -c Release -p:EnableMobileTargets=true -p:OverrideTargetFrameworks="net10.0-desktop;net10.0-browserwasm;net10.0-android"
+      - name: Render all samples (desktop, headless)
+        run: |
+          sudo apt-get update && sudo apt-get install -y xvfb
+          dotnet build AdaptiveCards.Visualizer.Uno -c Release -f net10.0-desktop
+          xvfb-run -a -s "-screen 0 1600x1200x24" dotnet AdaptiveCards.Visualizer.Uno/bin/Release/net10.0-desktop/AdaptiveCards.Visualizer.Uno.dll --screenshots "$RUNNER_TEMP/screenshots" "v1.6"
+          cat "$RUNNER_TEMP/screenshots/render-log.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-desktop
+          path: ${{ runner.temp }}/screenshots
+
+  windows:
+    name: Windows (WinAppSdk, android)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: source/uno/global.json
+      - name: Install workloads
+        run: dotnet workload install android wasm-tools
+      - name: Build renderer
+        run: dotnet build AdaptiveCards.Rendering.Uno -c Release -p:OverrideTargetFrameworks="net10.0-windows10.0.26100;net10.0-desktop"
+      - name: Build visualizer (WinAppSdk)
+        run: dotnet build AdaptiveCards.Visualizer.Uno -c Release -f net10.0-windows10.0.26100
+
+  macos:
+    name: macOS (iOS)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: source/uno/global.json
+      - name: Install workloads
+        run: dotnet workload install ios
+      - name: Build renderer (iOS)
+        run: dotnet build AdaptiveCards.Rendering.Uno -c Release -p:OverrideTargetFrameworks="net10.0-ios"
+      - name: Build visualizer (iOS simulator)
+        run: dotnet build AdaptiveCards.Visualizer.Uno -c Release -f net10.0-ios -p:RuntimeIdentifier=iossimulator-arm64

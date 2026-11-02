@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="global.json" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="AdaptiveCards.ObjectModel.Uno/AdaptiveCards.ObjectModel.Uno.csproj" />
+  <Project Path="AdaptiveCards.ObjectModel.Uno.Tests/AdaptiveCards.ObjectModel.Uno.Tests.csproj" />
+  <Project Path="AdaptiveCards.Rendering.Uno/AdaptiveCards.Rendering.Uno.csproj" />
+  <Project Path="AdaptiveCards.Visualizer.Uno/AdaptiveCards.Visualizer.Uno.csproj" />
+</Solution>

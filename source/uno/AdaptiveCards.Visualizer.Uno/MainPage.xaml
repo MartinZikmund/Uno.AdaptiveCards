@@ -1,0 +1,53 @@
+<Page x:Class="AdaptiveCards.Visualizer.Uno.MainPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+  <Grid Padding="12" ColumnSpacing="12" RowSpacing="8">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="260" />
+      <ColumnDefinition Width="*" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="160" />
+    </Grid.RowDefinitions>
+
+    <TextBlock Text="Adaptive Cards Visualizer" Style="{StaticResource SubtitleTextBlockStyle}" />
+    <StackPanel Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <TextBlock Text="Host config" VerticalAlignment="Center" />
+      <ComboBox x:Name="HostConfigPicker" MinWidth="220" SelectionChanged="OnHostConfigChanged" />
+      <Button Content="Render" Click="OnRenderClick" />
+    </StackPanel>
+
+    <Grid Grid.Row="1" Grid.RowSpan="2" RowSpacing="6">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+      <TextBox x:Name="SampleFilter" PlaceholderText="Filter samples" TextChanged="OnFilterChanged" />
+      <ListView x:Name="SampleList" Grid.Row="1" SelectionChanged="OnSampleSelected" />
+    </Grid>
+
+    <TextBox x:Name="JsonEditor" Grid.Row="1" Grid.Column="1" AcceptsReturn="True" TextWrapping="NoWrap"
+             FontFamily="Consolas, Menlo, monospace" FontSize="12" IsSpellCheckEnabled="False"
+             ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" />
+
+    <Border Grid.Row="1" Grid.Column="2" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
+      <ScrollViewer x:Name="CardScrollViewer" HorizontalScrollMode="Disabled">
+        <Border x:Name="CardHost" Padding="8" HorizontalAlignment="Stretch" />
+      </ScrollViewer>
+    </Border>
+
+    <Grid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" RowSpacing="4">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+      <TextBlock Text="Events, errors and warnings" Style="{StaticResource BodyStrongTextBlockStyle}" />
+      <TextBox x:Name="EventLog" Grid.Row="1" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" FontSize="12"
+               ScrollViewer.VerticalScrollBarVisibility="Auto" />
+    </Grid>
+  </Grid>
+</Page>

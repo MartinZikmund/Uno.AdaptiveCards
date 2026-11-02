@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>AdaptiveCards.ObjectModel.Uno</RootNamespace>
+    <Description>Adaptive Cards object model for Uno Platform. A C# port of AdaptiveCards.ObjectModel.WinUI3 (shared C++ object model).</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="AdaptiveCards.Rendering.Uno" />
+    <InternalsVisibleTo Include="AdaptiveCards.ObjectModel.Uno.Tests" />
+  </ItemGroup>
+</Project>

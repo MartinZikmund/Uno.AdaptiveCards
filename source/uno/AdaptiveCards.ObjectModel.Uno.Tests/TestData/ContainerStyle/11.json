@@ -1,0 +1,77 @@
+{
+                "type": "AdaptiveCard",
+                "version":"1.0",
+                "body": [
+                    {
+                        "type": "ColumnSet",
+                        "columns": [
+                            {
+                                "type": "Column",
+                                "style": "good",
+                                "items": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": "Column 1"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "Column",
+                                "style": "attention",
+                                "items": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": "Column 2"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "Column",
+                                "style": "warning",
+                                "items": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": "Column 3"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "type": "ColumnSet",
+                        "columns": [
+                            {
+                                "type": "Column",
+                                "style": "good",
+                                "items": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": "Column 1"
+                                    }
+                                ],
+                                "bleed": true
+                            },
+                            {
+                                "type": "Column",
+                                "style": "attention",
+                                "items": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": "Column 2"
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "Column",
+                                "style": "warning",
+                                "items": [
+                                    {
+                                        "type": "TextBlock",
+                                        "text": "Column 3"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }

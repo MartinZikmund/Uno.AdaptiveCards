@@ -1,0 +1,14 @@
+<Project Sdk="Uno.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;$(UnoTargetFrameworks)</TargetFrameworks>
+    <UnoSingleProject>true</UnoSingleProject>
+    <OutputType>Library</OutputType>
+    <RootNamespace>AdaptiveCards.Rendering.Uno</RootNamespace>
+    <Description>Adaptive Cards renderer for Uno Platform. A C# port of AdaptiveCards.Rendering.WinUI3 that runs on all Uno Platform targets.</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <UnoFeatures>MediaPlayerElement</UnoFeatures>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AdaptiveCards.ObjectModel.Uno\AdaptiveCards.ObjectModel.Uno.csproj" />
+  </ItemGroup>
+</Project>

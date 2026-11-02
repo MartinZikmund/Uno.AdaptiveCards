@@ -1,0 +1,33 @@
+<Project Sdk="Uno.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>$(UnoTargetFrameworks)</TargetFrameworks>
+
+    <OutputType>Exe</OutputType>
+    <UnoSingleProject>true</UnoSingleProject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <ApplicationTitle>Adaptive Cards Visualizer (Uno)</ApplicationTitle>
+    <ApplicationId>dev.zikmund.adaptivecards.visualizer</ApplicationId>
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationPublisher>Uno.AdaptiveCards</ApplicationPublisher>
+    <Description>Adaptive Cards Visualizer powered by Uno Platform.</Description>
+
+    <UnoFeatures>
+      SkiaRenderer;
+      MediaPlayerElement;
+      Svg;
+    </UnoFeatures>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AdaptiveCards.Rendering.Uno\AdaptiveCards.Rendering.Uno.csproj" />
+  </ItemGroup>
+
+  <!-- Embed the sample cards and host configs from the repository. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\..\samples\v1.*\**\*.json" LogicalName="Samples/%(RecursiveDir)%(Filename)%(Extension)" Link="SampleCards\%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\..\..\samples\HostConfig\*.json" LogicalName="HostConfig/%(Filename)%(Extension)" Link="SampleHostConfigs\%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>
