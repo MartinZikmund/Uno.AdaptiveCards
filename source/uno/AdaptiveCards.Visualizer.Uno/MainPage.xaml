@@ -18,6 +18,7 @@
     <StackPanel Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
       <TextBlock Text="Host config" VerticalAlignment="Center" />
       <ComboBox x:Name="HostConfigPicker" MinWidth="220" SelectionChanged="OnHostConfigChanged" />
+      <CheckBox x:Name="RewriteAssetUrls" Content="Fix dead adaptivecards.io asset URLs" IsChecked="True" Click="OnRenderClick" />
       <Button Content="Render" Click="OnRenderClick" />
     </StackPanel>
 

@@ -4,6 +4,7 @@ using System;
 using AdaptiveCards.ObjectModel.Uno;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Markup;
 using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
@@ -17,9 +18,13 @@ namespace AdaptiveCards.Rendering.Uno
     /// </summary>
     public sealed class AdaptiveCarouselRenderer : IAdaptiveElementRenderer
     {
-        private const string VerticalItemsPanelXaml =
-            "<ItemsPanelTemplate xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\">" +
-            "<VirtualizingStackPanel Orientation=\"Vertical\" AreScrollSnapPointsRegular=\"True\" /></ItemsPanelTemplate>";
+        // Vertical carousels are not supported by the WinUI3 renderer. Uno's FlipView does not page with a vertical
+        // items panel, so vertical carousels use a FlipView whose template simply presents the selected page; paging
+        // happens through the pips, the mouse wheel, vertical swipes and the timer.
+        private const string VerticalTemplateXaml =
+            "<ControlTemplate xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" TargetType=\"FlipView\">" +
+            "<Border Background=\"{TemplateBinding Background}\"><ContentPresenter Content=\"{TemplateBinding SelectedItem}\" " +
+            "HorizontalContentAlignment=\"Stretch\" VerticalContentAlignment=\"Stretch\" /></Border></ControlTemplate>";
 
         private readonly XamlBuilder _xamlBuilder;
 
@@ -40,7 +45,18 @@ namespace AdaptiveCards.Rendering.Uno
             var styledCollection = (IAdaptiveContainerBase)element;
             bool isVertical = carousel.Orientation == CarouselOrientation.Vertical;
 
-            var stackPanel = new StackPanel { Orientation = isVertical ? Orientation.Horizontal : Orientation.Vertical };
+            // Vertical carousels place the pips to the right of the pages. A horizontal StackPanel would measure the
+            // FlipView with an infinite width, so use a two column grid instead.
+            Panel stackPanel = isVertical
+                ? new Grid
+                {
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
+                        new ColumnDefinition { Width = GridLength.Auto },
+                    },
+                }
+                : new StackPanel { Orientation = Orientation.Vertical };
             var carouselUI = new FlipView();
 
             bool loopEnabled = carousel.AutoLoop ?? false;
@@ -114,6 +130,10 @@ namespace AdaptiveCards.Rendering.Uno
 
             stackPanel.Children.Add(carouselUI);
             stackPanel.Children.Add(pipsPager);
+            if (isVertical)
+            {
+                Grid.SetColumn(pipsPager, 1);
+            }
 
             var featureRegistration = context.FeatureRegistration;
             bool ancestorHasFallback = renderArgs.AncestorHasFallback;
@@ -154,16 +174,33 @@ namespace AdaptiveCards.Rendering.Uno
                     var (carouselPageUI, _) = XamlBuilder.RenderAsUIElement(page, context, newRenderArgs, featureRegistration, ancestorHasFallback);
                     if (carouselPageUI != null)
                     {
-                        carouselUI.Items.Add(carouselPageUI);
-                        if (fixedHeightInPixel == 0 && carouselPageUI is FrameworkElement pageFrameworkElement)
+                        if (fixedHeightInPixel == 0)
                         {
-                            pageFrameworkElement.LayoutUpdated += (s, e) =>
+                            // WinUI3 measures the selected page with an unbounded height from LayoutUpdated and grows the
+                            // FlipView's MaxHeight accordingly. On Uno that probe re-triggers layout forever, so each page is
+                            // hosted in a panel that reports its natural (unbounded) height instead.
+                            var host = new CarouselPageHost { Content = carouselPageUI };
+                            host.NaturalHeightChanged += naturalHeight =>
                             {
                                 if (weakCarouselUI.TryGetTarget(out var flipView))
                                 {
-                                    SetFlipViewMaxHeight(flipView);
+                                    var previousMaxHeight = flipView.MaxHeight;
+                                    if (double.IsPositiveInfinity(previousMaxHeight) || previousMaxHeight < naturalHeight)
+                                    {
+                                        flipView.MaxHeight = naturalHeight;
+                                        if (isVertical)
+                                        {
+                                            // A vertical FlipView needs a definite height to page.
+                                            flipView.Height = naturalHeight;
+                                        }
+                                    }
                                 }
                             };
+                            carouselUI.Items.Add(host);
+                        }
+                        else
+                        {
+                            carouselUI.Items.Add(carouselPageUI);
                         }
                     }
                 }
@@ -219,15 +256,45 @@ namespace AdaptiveCards.Rendering.Uno
         {
             try
             {
-                if (XamlReader.Load(VerticalItemsPanelXaml) is ItemsPanelTemplate template)
+                if (XamlReader.Load(VerticalTemplateXaml) is ControlTemplate template)
                 {
-                    flipView.ItemsPanel = template;
+                    flipView.Template = template;
                 }
             }
             catch (Exception)
             {
-                // Fall back to the default (horizontal) panel if runtime XAML loading is unavailable.
+                // Keep the default (horizontal) template if runtime XAML loading is unavailable.
+                return;
             }
+
+            void Move(int delta)
+            {
+                var next = flipView.SelectedIndex + delta;
+                if (next >= 0 && next < flipView.Items.Count)
+                {
+                    flipView.SelectedIndex = next;
+                }
+            }
+
+            flipView.PointerWheelChanged += (s, e) =>
+            {
+                var wheelDelta = e.GetCurrentPoint(flipView).Properties.MouseWheelDelta;
+                if (wheelDelta != 0)
+                {
+                    Move(wheelDelta < 0 ? 1 : -1);
+                    e.Handled = true;
+                }
+            };
+
+            flipView.ManipulationMode = Microsoft.UI.Xaml.Input.ManipulationModes.TranslateY;
+            flipView.ManipulationCompleted += (s, e) =>
+            {
+                var dy = e.Cumulative.Translation.Y;
+                if (Math.Abs(dy) > 30)
+                {
+                    Move(dy < 0 ? 1 : -1);
+                }
+            };
         }
 
         private static void SetupAutoAdvance(FlipView flipView, TimeSpan interval, bool loopEnabled)
@@ -263,26 +330,5 @@ namespace AdaptiveCards.Rendering.Uno
             flipView.Unloaded += (s, e) => timer.Stop();
         }
 
-        internal static void SetFlipViewMaxHeight(FlipView flipView)
-        {
-            var selectIndex = flipView.SelectedIndex;
-            if (selectIndex < 0 || selectIndex >= flipView.Items.Count)
-            {
-                return;
-            }
-
-            if (flipView.Items[selectIndex] is FrameworkElement carouselPageUI && flipView.IsLoaded)
-            {
-                float width = (float)flipView.ActualWidth;
-                var noVerticalLimit = new Size(width, double.PositiveInfinity);
-                carouselPageUI.Measure(noVerticalLimit);
-                var maxHeight = carouselPageUI.DesiredSize.Height;
-                var previousMaxHeight = flipView.MaxHeight;
-                if (double.IsPositiveInfinity(previousMaxHeight) || previousMaxHeight < maxHeight)
-                {
-                    flipView.MaxHeight = maxHeight;
-                }
-            }
-        }
     }
 }

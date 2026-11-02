@@ -106,7 +106,17 @@ public sealed partial class MainPage : Page
             _renderedCard.MediaClicked -= OnMediaClicked;
         }
 
-        _renderedCard = _renderer.RenderAdaptiveCardFromJsonString(JsonEditor.Text ?? string.Empty);
+        var cardJson = JsonEditor.Text ?? string.Empty;
+        if (RewriteAssetUrls.IsChecked == true)
+        {
+            // The sample cards reference https://adaptivecards.io/content/..., which no longer serves the assets.
+            // The same files are in this repository (source/nodejs/adaptivecards-site/.../content).
+            cardJson = cardJson.Replace(
+                "https://adaptivecards.io/content/",
+                "https://raw.githubusercontent.com/microsoft/AdaptiveCards/main/source/nodejs/adaptivecards-site/themes/adaptivecards/source/content/");
+        }
+
+        _renderedCard = _renderer.RenderAdaptiveCardFromJsonString(cardJson);
         _renderedCard.Action += OnCardAction;
         _renderedCard.MediaClicked += OnMediaClicked;
 
