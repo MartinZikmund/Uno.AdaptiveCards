@@ -17,6 +17,9 @@ namespace AdaptiveCards.Rendering.Uno
     {
         private Size _cellSize;
 
+        /// <summary>Gap between cells (0 for the default ImageSet style, 5 for the "grid" style).</summary>
+        public double Spacing { get; set; }
+
         protected override Size MeasureOverride(Size availableSize)
         {
             double cellWidth = 0;
@@ -29,6 +32,8 @@ namespace AdaptiveCards.Rendering.Uno
             }
 
             _cellSize = new Size(cellWidth, cellHeight);
+            var stepX = cellWidth + Spacing;
+            var stepY = cellHeight + Spacing;
             var visibleCount = 0;
             foreach (var child in Children)
             {
@@ -45,9 +50,9 @@ namespace AdaptiveCards.Rendering.Uno
 
             var perRow = double.IsInfinity(availableSize.Width)
                 ? visibleCount
-                : Math.Max(1, (int)Math.Floor(availableSize.Width / cellWidth));
+                : Math.Max(1, (int)Math.Floor((availableSize.Width + Spacing) / stepX));
             var rows = (int)Math.Ceiling(visibleCount / (double)perRow);
-            return new Size(Math.Min(visibleCount, perRow) * cellWidth, rows * cellHeight);
+            return new Size(Math.Min(visibleCount, perRow) * stepX - Spacing, rows * stepY - Spacing);
         }
 
         protected override Size ArrangeOverride(Size finalSize)
@@ -65,11 +70,11 @@ namespace AdaptiveCards.Rendering.Uno
                 if (x > 0 && x + _cellSize.Width > finalSize.Width + 0.5)
                 {
                     x = 0;
-                    y += _cellSize.Height;
+                    y += _cellSize.Height + Spacing;
                 }
 
                 child.Arrange(new Rect(x, y, _cellSize.Width, _cellSize.Height));
-                x += _cellSize.Width;
+                x += _cellSize.Width + Spacing;
             }
 
             return finalSize;

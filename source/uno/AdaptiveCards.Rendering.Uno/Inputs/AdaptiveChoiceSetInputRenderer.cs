@@ -202,9 +202,8 @@ namespace AdaptiveCards.Rendering.Uno
                 }
             };
 
-            autoSuggestBox.TextChanged += (sender, args) =>
+            List<string> StaticMatches(string currentText)
             {
-                var currentText = (sender.Text ?? string.Empty).ToLowerInvariant();
                 var currentResults = new List<string>();
                 foreach (var choice in choices)
                 {
@@ -215,13 +214,70 @@ namespace AdaptiveCards.Rendering.Uno
                     }
                 }
 
+                return currentResults;
+            }
+
+            FilteredChoiceSetInputValue inputValue = null;
+            var choicesProvider = renderContext.ChoicesProvider;
+            bool isDynamic = choicesProvider != null &&
+                adaptiveChoiceSetInput.ChoicesData?.ChoicesDataType == AdaptiveChoicesData.DataQueryType &&
+                !string.IsNullOrEmpty(adaptiveChoiceSetInput.ChoicesData.Dataset);
+            System.Threading.CancellationTokenSource pendingQuery = null;
+
+            autoSuggestBox.TextChanged += async (sender, args) =>
+            {
+                var rawText = sender.Text ?? string.Empty;
+                var currentText = rawText.ToLowerInvariant();
+                var currentResults = StaticMatches(currentText);
                 sender.ItemsSource = currentResults;
+
+                // Dynamic typeahead (Adaptive Cards 1.6 Data.Query), an extension over the WinUI3 renderer.
+                if (!isDynamic || args.Reason == AutoSuggestionBoxTextChangeReason.SuggestionChosen || string.IsNullOrEmpty(rawText))
+                {
+                    return;
+                }
+
+                pendingQuery?.Cancel();
+                var cts = pendingQuery = new System.Threading.CancellationTokenSource();
+                try
+                {
+                    await System.Threading.Tasks.Task.Delay(250, cts.Token);
+                    var dynamicChoices = await choicesProvider.GetChoicesAsync(
+                        new AdaptiveChoicesQuery(adaptiveChoiceSetInput, rawText), cts.Token);
+                    if (cts.IsCancellationRequested || dynamicChoices == null)
+                    {
+                        return;
+                    }
+
+                    inputValue?.DynamicChoices.Clear();
+                    inputValue?.DynamicChoices.AddRange(dynamicChoices);
+                    var merged = new List<string>(currentResults);
+                    foreach (var choice in dynamicChoices)
+                    {
+                        var title = choice.Title ?? string.Empty;
+                        if (!merged.Contains(title))
+                        {
+                            merged.Add(title);
+                        }
+                    }
+
+                    sender.ItemsSource = merged;
+                    sender.IsSuggestionListOpen = merged.Count > 0;
+                }
+                catch (OperationCanceledException)
+                {
+                }
+                catch (Exception ex)
+                {
+                    renderContext.TryGetRenderResult()?.Warnings.Add(
+                        new AdaptiveWarning(WarningStatusCode.CustomWarning, "Dynamic choices query failed: " + ex.Message));
+                }
             };
 
             var (inputLayout, validationBorder) =
                 XamlHelpers.HandleInputLayoutAndValidation(adaptiveChoiceSetInput, autoSuggestBox, true, renderContext);
 
-            var input = new FilteredChoiceSetInputValue(adaptiveChoiceSetInput, autoSuggestBox, validationBorder);
+            var input = inputValue = new FilteredChoiceSetInputValue(adaptiveChoiceSetInput, autoSuggestBox, validationBorder);
             renderContext.AddInputValue(input, renderArgs);
 
             return inputLayout;

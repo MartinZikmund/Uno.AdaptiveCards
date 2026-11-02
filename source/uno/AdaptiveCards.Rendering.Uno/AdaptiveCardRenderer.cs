@@ -91,6 +91,12 @@ namespace AdaptiveCards.Rendering.Uno
             set => _hostConfig.AddSelectActionMargin = value;
         }
 
+        /// <summary>
+        /// Source of dynamic choices for filtered <c>Input.ChoiceSet</c>s using <c>choices.data</c> (Data.Query).
+        /// Optional; without it only the static choices are offered (as in the WinUI3 renderer).
+        /// </summary>
+        public IAdaptiveChoicesProvider ChoicesProvider { get; set; }
+
         public AdaptiveElementRendererRegistration ElementRenderers { get; }
 
         public AdaptiveActionRendererRegistration ActionRenderers { get; }
@@ -130,6 +136,7 @@ namespace AdaptiveCards.Rendering.Uno
                     renderedCard)
                 {
                     XamlBuilder = _xamlBuilder,
+                    ChoicesProvider = ChoicesProvider,
                 };
 
                 _xamlBuilder.SetEnableXamlImageHandling(true);

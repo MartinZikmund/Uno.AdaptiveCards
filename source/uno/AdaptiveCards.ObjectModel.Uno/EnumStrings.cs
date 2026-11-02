@@ -188,6 +188,13 @@ namespace AdaptiveCards.ObjectModel.Uno
             (Uno.CarouselOrientation.Vertical, "vertical"),
         });
 
+        public static readonly EnumMap<ImageSetStyle> ImageSetStyle = new(new[]
+        {
+            (Uno.ImageSetStyle.Default, "default"),
+            (Uno.ImageSetStyle.Stacked, "stacked"),
+            (Uno.ImageSetStyle.Grid, "grid"),
+        });
+
         public static readonly EnumMap<ActionMode> Mode = new(new[]
         {
             (ActionMode.Primary, "primary"),

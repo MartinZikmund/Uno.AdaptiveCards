@@ -132,4 +132,7 @@ namespace AdaptiveCards.ObjectModel.Uno
     public enum ActionRole { Button = 0, Link, Tab, Menu, MenuItem }
 
     public enum CarouselOrientation { Horizontal = 0, Vertical }
+
+    /// <summary>ImageSet presentation style (Adaptive Cards 1.6; not part of the WinUI3 projection).</summary>
+    public enum ImageSetStyle { Default = 0, Stacked, Grid }
 }

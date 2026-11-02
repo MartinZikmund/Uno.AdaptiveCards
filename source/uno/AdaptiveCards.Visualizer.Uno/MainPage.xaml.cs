@@ -11,6 +11,7 @@ public sealed partial class MainPage : Page
     public MainPage()
     {
         InitializeComponent();
+        _renderer.ChoicesProvider = new DemoChoicesProvider();
 
         HostConfigPicker.Items.Add("(default)");
         foreach (var (name, _) in SampleRepository.HostConfigs)

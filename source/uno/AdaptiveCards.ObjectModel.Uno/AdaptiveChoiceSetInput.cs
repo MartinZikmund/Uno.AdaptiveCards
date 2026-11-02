@@ -39,6 +39,12 @@ namespace AdaptiveCards.ObjectModel.Uno
 
         public string Dataset { get; set; } = string.Empty;
 
+        /// <summary>Maximum number of choices to request (schema "count"; not parsed by the shared C++ model).</summary>
+        public int? Count { get; set; }
+
+        /// <summary>Number of choices to skip (schema "skip"; not parsed by the shared C++ model).</summary>
+        public int? Skip { get; set; }
+
         internal bool ShouldSerialize() => ChoicesDataType == DataQueryType && !string.IsNullOrEmpty(Dataset);
 
         public JsonObject ToJson()
@@ -52,6 +58,16 @@ namespace AdaptiveCards.ObjectModel.Uno
             if (!string.IsNullOrEmpty(Dataset))
             {
                 root["dataset"] = Dataset;
+            }
+
+            if (Count.HasValue)
+            {
+                root["count"] = Count.Value;
+            }
+
+            if (Skip.HasValue)
+            {
+                root["skip"] = Skip.Value;
             }
 
             return root;
@@ -92,6 +108,8 @@ namespace AdaptiveCards.ObjectModel.Uno
             {
                 choicesData.ChoicesDataType = type;
                 choicesData.Dataset = dataset;
+                choicesData.Count = ParseUtil.GetOptionalInt(json, "count");
+                choicesData.Skip = ParseUtil.GetOptionalInt(json, "skip");
             }
 
             return choicesData;

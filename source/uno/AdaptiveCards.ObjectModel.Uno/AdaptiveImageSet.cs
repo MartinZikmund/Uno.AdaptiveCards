@@ -15,11 +15,19 @@ namespace AdaptiveCards.ObjectModel.Uno
 
         public ImageSize ImageSize { get; set; } = ImageSize.None;
 
+        /// <summary>Presentation style ("style": default, stacked, grid). Adaptive Cards 1.6, not in the WinUI3 projection.</summary>
+        public ImageSetStyle Style { get; set; } = ImageSetStyle.Default;
+
+        /// <summary>Pixel offset between images in the stacked style ("offset"). Not in the WinUI3 projection.</summary>
+        public double Offset { get; set; }
+
         protected override void PopulateKnownProperties(ISet<string> knownProperties)
         {
             base.PopulateKnownProperties(knownProperties);
             knownProperties.Add("images");
             knownProperties.Add("imageSize");
+            knownProperties.Add("style");
+            knownProperties.Add("offset");
         }
 
         public override JsonObject ToJson()
@@ -28,6 +36,16 @@ namespace AdaptiveCards.ObjectModel.Uno
             if (ImageSize != ImageSize.None)
             {
                 root["imageSize"] = EnumStrings.ImageSize.ToString(ImageSize);
+            }
+
+            if (Style != ImageSetStyle.Default)
+            {
+                root["style"] = EnumStrings.ImageSetStyle.ToString(Style);
+            }
+
+            if (Offset != 0)
+            {
+                root["offset"] = Offset;
             }
 
             var images = new JsonArray();
@@ -54,6 +72,8 @@ namespace AdaptiveCards.ObjectModel.Uno
             var imageSet = new AdaptiveImageSet();
             imageSet.DeserializeBaseProperties(context, json);
             imageSet.ImageSize = ParseUtil.GetEnumValue(json, "imageSize", ImageSize.None, EnumStrings.ImageSize);
+            imageSet.Style = ParseUtil.GetEnumValue(json, "style", ImageSetStyle.Default, EnumStrings.ImageSetStyle);
+            imageSet.Offset = ParseUtil.GetOptionalDouble(json, "offset") ?? 0;
 
             var images = ParseUtil.GetElementCollection(
                 true, context, json, "images", true, "Image", (ctx, j) => ParseUtil.ParseCardElement(ctx, j) as AdaptiveImage);

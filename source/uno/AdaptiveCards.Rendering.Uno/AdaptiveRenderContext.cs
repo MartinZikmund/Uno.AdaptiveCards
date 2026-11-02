@@ -66,6 +66,9 @@ namespace AdaptiveCards.Rendering.Uno
 
         public HAlignment? HorizontalContentAlignment { get; set; }
 
+        /// <summary>Source of dynamic choices for Data.Query choice sets (see <see cref="AdaptiveCardRenderer.ChoicesProvider"/>).</summary>
+        public IAdaptiveChoicesProvider ChoicesProvider { get; internal set; }
+
         internal ResourceDictionary DefaultActionSentimentDictionary { get; }
 
         /// <summary>The XamlBuilder that owns this render (used for image load tracking).</summary>

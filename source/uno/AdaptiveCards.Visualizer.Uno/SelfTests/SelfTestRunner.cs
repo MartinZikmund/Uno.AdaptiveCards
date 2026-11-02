@@ -108,6 +108,7 @@ public static class SelfTestRunner
         ("Rtl sets flow direction", Rtl),
         ("All sample host configs parse", HostConfigsParse),
         ("Unknown element type falls back with warning", UnknownElementFallback),
+        ("Dynamic typeahead (Data.Query) choices", DynamicTypeahead),
     ];
 
     // ---------- helpers ----------
@@ -457,6 +458,26 @@ public static class SelfTestRunner
         }
 
         return Task.CompletedTask;
+    }
+
+    private static async Task DynamicTypeahead(MainPage page)
+    {
+        var card = await RenderAsync(page, """
+        {"type":"AdaptiveCard","version":"1.6","body":[{"type":"Input.ChoiceSet","id":"person","style":"filtered",
+          "choices":[{"title":"Static Person","value":"static"}],
+          "choices.data":{"type":"Data.Query","dataset":"graph.microsoft.com/users","count":3}}],
+         "actions":[{"type":"Action.Submit","title":"Send"}]}
+        """);
+        var box = Find<AutoSuggestBox>(card.FrameworkElement!).Single();
+        box.Text = "Me";
+        await Task.Delay(800);
+        var items = (box.ItemsSource as IEnumerable<string>)?.ToList() ?? [];
+        Assert(items.Contains("Megan Bowen"), "dynamic choice expected, got: " + string.Join("|", items));
+
+        box.Text = "Megan Bowen";
+        await Task.Delay(800);
+        var args = await ClickAndCaptureAsync(card, "Send") ?? throw new TestFailure("submit not raised");
+        AssertEqual("megan.bowen", args.Inputs.AsJson()["person"]?.GetValue<string>(), "dynamic choice value");
     }
 
     private static async Task UnknownElementFallback(MainPage page)

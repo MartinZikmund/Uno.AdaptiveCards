@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -485,6 +487,9 @@ namespace AdaptiveCards.Rendering.Uno
             _autoSuggestBox = autoSuggestBox;
         }
 
+        /// <summary>Choices returned by the host's <see cref="IAdaptiveChoicesProvider"/> (Data.Query).</summary>
+        internal List<AdaptiveChoiceInput> DynamicChoices { get; } = new();
+
         public override string CurrentValue => GetSelectedChoice()?.Value ?? string.Empty;
 
         protected override bool IsValueValid()
@@ -501,7 +506,7 @@ namespace AdaptiveCards.Rendering.Uno
         private AdaptiveChoiceInput GetSelectedChoice()
         {
             var text = (_autoSuggestBox.Text ?? string.Empty).ToLowerInvariant();
-            foreach (var choice in _adaptiveChoiceSetInput.Choices)
+            foreach (var choice in _adaptiveChoiceSetInput.Choices.Concat(DynamicChoices))
             {
                 if (text == (choice.Title ?? string.Empty).ToLowerInvariant())
                 {
