@@ -124,7 +124,9 @@ The port is faithful to the WinUI 3 implementation; deliberate differences are d
 * `ImageSet` supports the 1.6 `style` (`stacked`, `grid`) and `offset` properties (ported from the JS renderer).
 * `Input.ChoiceSet` supports dynamic typeahead (`choices.data` / `Data.Query`) through `ChoicesProvider`.
 * Actions honor `requires` (fall back when unmet).
-* `Media.captionSources` are rendered on every head (WebVTT/SRT overlay on Uno, `TimedTextSource` on Windows App SDK).
+* `Media.captionSources` are rendered on every head: `TimedTextSource` on Windows App SDK; on Uno heads a WebVTT/SRT
+  renderer with a closed-captions track picker, styled cue markup and WebVTT cue settings (`line`, `position`, `size`,
+  `align`).
 * A few shared-model serialization bugs are fixed (e.g. `role` on `Action.OpenUrl`, `captionSources` on `Media`).
 
 Uno Platform gaps discovered during the port are tracked in [`UPSTREAM_GAPS.md`](UPSTREAM_GAPS.md) and filed as

@@ -154,7 +154,8 @@ namespace AdaptiveCards.Rendering.Uno
         {
 #if HAS_UNO
             // TimedTextSource/ExternalTimedTextSources are not implemented on Uno (issue #1): captions are rendered by
-            // WebVttCaptions as an overlay on the player. Only one caption track is shown (no track picker).
+            // WebVttCaptions as an overlay on the player, with a closed-captions track picker.
+            var captionTracks = new List<(AdaptiveCaptionSource, Uri)>();
             foreach (var captionSource in adaptiveMedia.CaptionSources)
             {
                 if (!s_supportedCaptionTypes.Contains(captionSource.MimeType))
@@ -171,9 +172,10 @@ namespace AdaptiveCards.Rendering.Uno
                     continue;
                 }
 
-                WebVttCaptions.Attach(mediaElement, captionSource, captionUrl, renderContext);
-                break;
+                captionTracks.Add((captionSource, captionUrl));
             }
+
+            WebVttCaptions.Attach(mediaElement, captionTracks, renderContext);
 
             mediaElement.Source = new MediaPlaybackItem(mediaSrc);
             StartPlayback(mediaElement);

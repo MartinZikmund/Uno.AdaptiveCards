@@ -2,6 +2,7 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.Json.Nodes;
 using AdaptiveCards.ObjectModel.Uno;
 using AdaptiveCards.Rendering.Uno;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Media;
 
@@ -133,6 +134,7 @@ public static class SelfTestRunner
         ("Action sentiment styles use host config colors", ActionSentiment),
         ("Pressed buttons give visual feedback", PressFeedback),
         ("Media plays from a resource resolver stream with captions", MediaPlaybackWithCaptions),
+        ("Caption tracks: picker, styled cues and cue settings", CaptionTracks),
     ];
 
     // ---------- helpers ----------
@@ -217,6 +219,9 @@ public static class SelfTestRunner
 
     private static void AssertEqual(string? expected, string? actual, string what) =>
         Assert(expected == actual, $"{what}: expected '{expected}', got '{actual}'");
+
+    private static void AssertEqual<T>(T expected, T actual, string what) where T : struct =>
+        Assert(EqualityComparer<T>.Default.Equals(expected, actual), $"{what}: expected '{expected}', got '{actual}'");
 
     private static bool IsShown(UIElement element)
     {
@@ -598,6 +603,66 @@ public static class SelfTestRunner
         await Task.Delay(500);
         var caption = Find<TextBlock>(card.FrameworkElement!).FirstOrDefault(t => t.Text == "Hello captions");
         Assert(caption is not null && IsShown(caption), "caption overlay should show the active cue");
+#endif
+    }
+
+    private static async Task CaptionTracks(MainPage page)
+    {
+#if HAS_UNO
+        page.Renderer.ResourceResolvers.Set("selftest", new EmbeddedMediaResolver());
+        static string Vtt(string body) => Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("WEBVTT\n\n" + body));
+        var english = Vtt("00:00.000 --> 00:59.000 line:10% align:start position:10% size:50%\n<b>Bold</b> and <i>italic</i> &amp; more\n");
+        var czech = Vtt("00:00.000 --> 00:59.000\nAhoj\n");
+        var card = await RenderAsync(page, $$"""
+        {"type":"AdaptiveCard","version":"1.6","body":[{"type":"Media","poster":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FAAhKDveksOjmAAAAAElFTkSuQmCC",
+          "sources":[{"mimeType":"video/mp4","url":"selftest://video/selftest.mp4"}],
+          "captionSources":[{"mimeType":"vtt","label":"English","url":"data:text/vtt;base64,{{english}}"},
+                            {"mimeType":"vtt","label":"Czech","url":"data:text/vtt;base64,{{czech}}"}]}]}
+        """);
+        Click(Find<Button>(card.FrameworkElement!).First());
+        await Task.Delay(1200);
+
+        var root = card.FrameworkElement!;
+        var ccButton = Find<Button>(root).FirstOrDefault(b => AutomationProperties.GetName(b) == "Closed captions")
+            ?? throw new TestFailure("closed captions button not found");
+        Assert(IsShown(ccButton), "closed captions button should be visible");
+        var items = ((MenuFlyout)ccButton.Flyout).Items.OfType<ToggleMenuFlyoutItem>().ToList();
+        AssertEqual("Off,English,Czech", string.Join(",", items.Select(i => i.Text)), "caption menu entries");
+        AssertEqual("English", items.Single(i => i.IsChecked).Text, "first track presented by default");
+
+        // AC_SELFTEST_HOLD_MS keeps each stage on screen (for screenshots).
+        var hold = int.TryParse(Environment.GetEnvironmentVariable("AC_SELFTEST_HOLD_MS"), out var ms) ? ms : 0;
+        await Task.Delay(hold);
+
+        TextBlock? Cue() => Find<TextBlock>(root).FirstOrDefault(t => AutomationProperties.GetAutomationId(t) == "AdaptiveMediaCaptionCue");
+
+        var cue = Cue() ?? throw new TestFailure("no caption cue shown for the default track");
+        AssertEqual("Bold and italic & more", AutomationProperties.GetName(cue), "cue text");
+        var runs = cue.Inlines.OfType<Microsoft.UI.Xaml.Documents.Run>().ToList();
+        Assert(runs.Any(r => r.Text == "Bold" && r.FontWeight.Weight == Microsoft.UI.Text.FontWeights.Bold.Weight), "<b> should be bold");
+        Assert(runs.Any(r => r.Text == "italic" && r.FontStyle == Windows.UI.Text.FontStyle.Italic), "<i> should be italic");
+        var box = (Border)VisualTreeHelper.GetParent(cue);
+        AssertEqual(VerticalAlignment.Top, box.VerticalAlignment, "line:10% places the cue from the top");
+        AssertEqual(HorizontalAlignment.Left, box.HorizontalAlignment, "position/size place the cue horizontally");
+        AssertEqual(TextAlignment.Left, cue.TextAlignment, "align:start");
+        var host = (FrameworkElement)VisualTreeHelper.GetParent(box);
+        Assert(Math.Abs(box.Margin.Top - host.ActualHeight * 0.10) < 2, $"line:10% top margin (got {box.Margin.Top}, height {host.ActualHeight})");
+        Assert(Math.Abs(box.Width - host.ActualWidth * 0.50) < 2, $"size:50% width (got {box.Width}, width {host.ActualWidth})");
+
+        ccButton.Flyout.ShowAt(ccButton);
+        await Task.Delay(Math.Max(300, hold));
+        ccButton.Flyout.Hide();
+        items.Single(i => i.Text == "Czech").IsChecked = true;
+        await Task.Delay(700 + hold);
+        AssertEqual("Ahoj", Cue() is { } czechCue ? AutomationProperties.GetName(czechCue) : null, "selected track's cue");
+        AssertEqual("Czech", items.Single(i => i.IsChecked).Text, "selected track checked");
+
+        items.Single(i => i.Text == "Off").IsChecked = true;
+        await Task.Delay(700);
+        Assert(Cue() is null, "captions off should hide cues");
+#else
+        // Windows App SDK presents captions through the platform (TimedTextSource + transport controls).
+        await Task.CompletedTask;
 #endif
     }
 
