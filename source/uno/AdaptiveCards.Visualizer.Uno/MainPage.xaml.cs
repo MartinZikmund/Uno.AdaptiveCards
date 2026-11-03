@@ -11,6 +11,10 @@ public sealed partial class MainPage : Page
     public MainPage()
     {
         InitializeComponent();
+#if HAS_UNO
+        // Phone layout (Uno heads only; the Windows App SDK head keeps the desktop layout).
+        LayoutRoot.SizeChanged += OnLayoutSizeChanged;
+#endif
         _renderer.ChoicesProvider = new DemoChoicesProvider();
 
         HostConfigPicker.Items.Add("(default)");
@@ -255,10 +259,10 @@ public sealed partial class MainPage : Page
         SamplePanel.Visibility = wide;
         JsonEditor.Visibility = wide;
         HeaderPanel.Visibility = wide;
-        SampleColumn.Width = narrow ? new GridLength(0) : new GridLength(260);
-        EditorColumn.Width = narrow ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        LayoutRoot.ColumnDefinitions[0].Width = narrow ? new GridLength(0) : new GridLength(260);
+        LayoutRoot.ColumnDefinitions[1].Width = narrow ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
         LayoutRoot.ColumnSpacing = narrow ? 0 : 12;
-        LogRow.Height = new GridLength(narrow ? 120 : 160);
+        LayoutRoot.RowDefinitions[2].Height = new GridLength(narrow ? 120 : 160);
         Grid.SetColumnSpan(TitleText, narrow ? 3 : 1);
         Grid.SetColumn(CardPane, narrow ? 0 : 2);
         Grid.SetColumnSpan(CardPane, narrow ? 3 : 1);
