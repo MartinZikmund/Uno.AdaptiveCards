@@ -559,10 +559,13 @@ public static class SelfTestRunner
           "sources":[{"mimeType":"video/mp4","url":"selftest://video/selftest.mp4"}],
           "captionSources":[{"mimeType":"vtt","label":"English","url":"data:text/vtt;base64,{{vtt}}"}]}]}
         """);
+        Console.WriteLine("SELFTEST STEP media card rendered");
         Click(Find<Button>(card.FrameworkElement!).First());
+        Console.WriteLine("SELFTEST STEP poster clicked");
         var player = Find<MediaPlayerElement>(card.FrameworkElement!).Single();
 
         var deadline = DateTime.UtcNow.AddSeconds(30);
+        var nextLog = DateTime.UtcNow;
         Windows.Media.Playback.MediaPlaybackState state = default;
         TimeSpan position = default;
         while (DateTime.UtcNow < deadline)
@@ -570,6 +573,12 @@ public static class SelfTestRunner
             await Task.Delay(250);
             state = player.MediaPlayer?.PlaybackSession?.PlaybackState ?? default;
             position = player.MediaPlayer?.PlaybackSession?.Position ?? default;
+            if (DateTime.UtcNow >= nextLog)
+            {
+                Console.WriteLine($"SELFTEST STEP media state {state}, position {position}, warnings {card.Warnings.Count}");
+                nextLog = DateTime.UtcNow.AddSeconds(2);
+            }
+
             if (position > TimeSpan.FromMilliseconds(300))
             {
                 break;

@@ -96,7 +96,13 @@ jobs:
             adb shell monkey -p dev.zikmund.adaptivecards.visualizer -c android.intent.category.LAUNCHER 1
             for i in $(seq 1 240); do if adb logcat -d | grep -q "SELFTEST DONE"; then break; fi; sleep 5; done
             adb logcat -d | grep "SELFTEST" || true
-            adb logcat -d | grep -q "SELFTEST DONE OK"
+            adb logcat -d | grep -q "SELFTEST DONE OK" || (echo "app pid: $(adb shell pidof dev.zikmund.adaptivecards.visualizer)"; adb exec-out screencap -p > "$RUNNER_TEMP/android-selftest.png"; adb logcat -d | grep -iE "AndroidRuntime|FATAL|DOTNET|MediaPlayer|monodroid|libc|DEBUG" | tail -400; exit 1)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-selftest-screen
+          path: ${{ runner.temp }}/android-selftest.png
+          if-no-files-found: ignore
 
   windows:
     name: Windows (WinAppSdk, desktop, android)
