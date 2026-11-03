@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: uno-${{ github.ref }}
+  group: uno-ci-${{ github.ref }}
   cancel-in-progress: false
 
 defaults:
