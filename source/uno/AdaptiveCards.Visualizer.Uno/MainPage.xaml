@@ -2,27 +2,27 @@
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-  <Grid Padding="12" ColumnSpacing="12" RowSpacing="8">
+  <Grid x:Name="LayoutRoot" Padding="12" ColumnSpacing="12" RowSpacing="8" SizeChanged="OnLayoutSizeChanged">
     <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="260" />
-      <ColumnDefinition Width="*" />
+      <ColumnDefinition x:Name="SampleColumn" Width="260" />
+      <ColumnDefinition x:Name="EditorColumn" Width="*" />
       <ColumnDefinition Width="*" />
     </Grid.ColumnDefinitions>
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
-      <RowDefinition Height="160" />
+      <RowDefinition x:Name="LogRow" Height="160" />
     </Grid.RowDefinitions>
 
-    <TextBlock Text="Adaptive Cards Visualizer" Style="{StaticResource SubtitleTextBlockStyle}" />
-    <StackPanel Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+    <TextBlock x:Name="TitleText" Text="Adaptive Cards Visualizer" Style="{StaticResource SubtitleTextBlockStyle}" />
+    <StackPanel x:Name="HeaderPanel" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
       <TextBlock Text="Host config" VerticalAlignment="Center" />
       <ComboBox x:Name="HostConfigPicker" MinWidth="220" SelectionChanged="OnHostConfigChanged" />
       <CheckBox x:Name="RewriteAssetUrls" Content="Fix dead adaptivecards.io asset URLs" IsChecked="True" Click="OnRenderClick" />
       <Button Content="Render" Click="OnRenderClick" />
     </StackPanel>
 
-    <Grid Grid.Row="1" Grid.RowSpan="2" RowSpacing="6">
+    <Grid x:Name="SamplePanel" Grid.Row="1" Grid.RowSpan="2" RowSpacing="6">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
         <RowDefinition Height="*" />
@@ -35,13 +35,13 @@
              FontFamily="Consolas, Menlo, monospace" FontSize="12" IsSpellCheckEnabled="False"
              ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" />
 
-    <Border Grid.Row="1" Grid.Column="2" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
+    <Border x:Name="CardPane" Grid.Row="1" Grid.Column="2" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4">
       <ScrollViewer x:Name="CardScrollViewer" HorizontalScrollMode="Disabled">
         <Border x:Name="CardHost" Padding="8" HorizontalAlignment="Stretch" />
       </ScrollViewer>
     </Border>
 
-    <Grid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" RowSpacing="4">
+    <Grid x:Name="LogPanel" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" RowSpacing="4">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
         <RowDefinition Height="*" />

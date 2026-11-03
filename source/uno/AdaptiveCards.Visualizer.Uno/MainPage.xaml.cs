@@ -218,4 +218,34 @@ public sealed partial class MainPage : Page
     }
 
     private void Log(string message) => EventLog.Text += message + Environment.NewLine;
+
+    private bool? _narrowLayout;
+
+    /// <summary>
+    /// Phones: the three-pane desktop layout leaves the card almost no width, so on narrow windows only the card
+    /// (and the event log) are shown, full width.
+    /// </summary>
+    private void OnLayoutSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        bool narrow = e.NewSize.Width < 900;
+        if (_narrowLayout == narrow)
+        {
+            return;
+        }
+
+        _narrowLayout = narrow;
+        var wide = narrow ? Visibility.Collapsed : Visibility.Visible;
+        SamplePanel.Visibility = wide;
+        JsonEditor.Visibility = wide;
+        HeaderPanel.Visibility = wide;
+        SampleColumn.Width = narrow ? new GridLength(0) : new GridLength(260);
+        EditorColumn.Width = narrow ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        LayoutRoot.ColumnSpacing = narrow ? 0 : 12;
+        LogRow.Height = new GridLength(narrow ? 120 : 160);
+        Grid.SetColumnSpan(TitleText, narrow ? 3 : 1);
+        Grid.SetColumn(CardPane, narrow ? 0 : 2);
+        Grid.SetColumnSpan(CardPane, narrow ? 3 : 1);
+        Grid.SetColumn(LogPanel, narrow ? 0 : 1);
+        Grid.SetColumnSpan(LogPanel, narrow ? 3 : 2);
+    }
 }
