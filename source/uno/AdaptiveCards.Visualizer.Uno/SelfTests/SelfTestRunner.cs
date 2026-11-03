@@ -709,14 +709,16 @@ public static class SelfTestRunner
         AssertEqual(GridUnitType.Star, nameGrid.ColumnDefinitions[0].Width.GridUnitType, "labelWidth 40 is a proportion");
         Assert(nameGrid.ColumnDefinitions[0].Width.Value == 40 && nameGrid.ColumnDefinitions[1].Width.Value == 60, "labelWidth 40 -> 40*/60*");
         var nameLabel = (FrameworkElement)nameGrid.Children[0];
-        var nameInput = Find<TextBox>(nameGrid).Single();
-        await WaitUntilAsync(() => nameInput.ActualWidth > 0 && nameLabel.ActualWidth > 0
-            && nameInput.TransformToVisual(root).TransformPoint(default).X > nameLabel.TransformToVisual(root).TransformPoint(default).X);
+        var nameInputColumn = (FrameworkElement)nameGrid.Children[1];
+        Assert(Grid.GetColumn(nameLabel) == 0 && Grid.GetColumn(nameInputColumn) == 1, "label in column 0, input in column 1");
+        Assert(Find<TextBox>(nameInputColumn).Any(), "the input sits in the second column");
+        await WaitUntilAsync(() => nameInputColumn.ActualWidth > 0 && nameLabel.ActualWidth > 0
+            && nameInputColumn.TransformToVisual(root).TransformPoint(default).X > nameLabel.TransformToVisual(root).TransformPoint(default).X);
         var labelPos = nameLabel.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point(0, 0));
-        var inputPos = nameInput.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point(0, 0));
-        Assert(labelPos.X < inputPos.X, $"inline label should be left of the input (label x {labelPos.X}, input x {inputPos.X})");
+        var inputPos = nameInputColumn.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point(0, 0));
+        Assert(labelPos.X < inputPos.X, $"inline label should be left of the input (label x {labelPos.X}, input column x {inputPos.X}, grid width {nameGrid.ActualWidth})");
         var labelMid = labelPos.Y + nameLabel.ActualHeight / 2;
-        Assert(labelMid >= inputPos.Y && labelMid <= inputPos.Y + nameInput.ActualHeight, "inline label should be vertically centered on the input");
+        Assert(labelMid >= inputPos.Y && labelMid <= inputPos.Y + nameInputColumn.ActualHeight, "inline label should be vertically centered on the input");
 
         var ageGrid = InlineGrid("Age");
         AssertEqual(GridUnitType.Pixel, ageGrid.ColumnDefinitions[0].Width.GridUnitType, "labelWidth 120px is absolute");
