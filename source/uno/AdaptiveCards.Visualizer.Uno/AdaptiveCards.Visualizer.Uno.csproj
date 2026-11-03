@@ -21,6 +21,13 @@
     </UnoFeatures>
   </PropertyGroup>
 
+  <!-- CI: unpackaged, self-contained Windows App SDK build that can be launched directly (app only, not libraries). -->
+  <PropertyGroup Condition="'$(UnpackagedSelfContained)'=='true' and $(TargetFramework.Contains('-windows'))">
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
   <!-- CI: run the interaction self-tests at launch (used for the Android emulator / iOS simulator jobs). -->
   <PropertyGroup Condition="'$(SelfTestOnLaunch)'=='true'">
     <DefineConstants>$(DefineConstants);SELFTEST_ON_LAUNCH</DefineConstants>

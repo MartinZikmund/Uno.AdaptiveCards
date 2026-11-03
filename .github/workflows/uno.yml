@@ -104,7 +104,7 @@ jobs:
       - name: Build renderer
         run: msbuild AdaptiveCards.Rendering.Uno/AdaptiveCards.Rendering.Uno.csproj -restore -p:Configuration=Release -p:OverrideTargetFrameworks="net10.0-windows10.0.26100%3Bnet10.0-desktop%3Bnet10.0-android" -v:m
       - name: Build visualizer (WinAppSdk, unpackaged)
-        run: msbuild AdaptiveCards.Visualizer.Uno/AdaptiveCards.Visualizer.Uno.csproj -restore -p:Configuration=Release -p:OverrideTargetFrameworks=net10.0-windows10.0.26100 -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true -p:RuntimeIdentifier=win-x64 -v:m
+        run: msbuild AdaptiveCards.Visualizer.Uno/AdaptiveCards.Visualizer.Uno.csproj -restore -p:Configuration=Release -p:OverrideTargetFrameworks=net10.0-windows10.0.26100 -p:UnpackagedSelfContained=true -v:m
       - name: Interaction self-tests (WinAppSdk)
         shell: pwsh
         run: |
