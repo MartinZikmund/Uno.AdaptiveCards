@@ -113,6 +113,8 @@ public static class SelfTestRunner
         ("All sample host configs parse", HostConfigsParse),
         ("Unknown element type falls back with warning", UnknownElementFallback),
         ("Dynamic typeahead (Data.Query) choices", DynamicTypeahead),
+        ("Media raises MediaClicked when inline playback is off", MediaClicked),
+        ("Media inline playback shows the player", MediaInline),
     ];
 
     // ---------- helpers ----------
@@ -482,6 +484,45 @@ public static class SelfTestRunner
         await Task.Delay(800);
         var args = await ClickAndCaptureAsync(card, "Send") ?? throw new TestFailure("submit not raised");
         AssertEqual("megan.bowen", args.Inputs.AsJson()["person"]?.GetValue<string>(), "dynamic choice value");
+    }
+
+    private const string MediaCard = """
+        {"type":"AdaptiveCard","version":"1.6","body":[{"type":"Media","poster":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FAAhKDveksOjmAAAAAElFTkSuQmCC",
+          "sources":[{"mimeType":"video/mp4","url":"https://example.com/video.mp4"}]}]}
+        """;
+
+    private static async Task MediaClicked(MainPage page)
+    {
+        var original = page.Renderer.HostConfig;
+        var hostConfig = AdaptiveHostConfig.FromJsonString("""{"media":{"allowInlinePlayback":false}}""").HostConfig!;
+        page.Renderer.HostConfig = hostConfig;
+        try
+        {
+            var card = await RenderAsync(page, MediaCard);
+            AdaptiveMediaEventArgs? clicked = null;
+            card.MediaClicked += (s, e) => clicked = e;
+            Click(Find<Button>(card.FrameworkElement!).First());
+            await Task.Delay(100);
+            AssertEqual("https://example.com/video.mp4", clicked?.Media.Sources.FirstOrDefault()?.Url, "MediaClicked media");
+            Assert(!Find<MediaPlayerElement>(card.FrameworkElement!).Any(), "no inline player expected");
+        }
+        finally
+        {
+            page.Renderer.HostConfig = original;
+        }
+    }
+
+    private static async Task MediaInline(MainPage page)
+    {
+        var card = await RenderAsync(page, MediaCard);
+        var player = Find<MediaPlayerElement>(card.FrameworkElement!).Single();
+        Assert(!IsShown(player), "player should start hidden behind the poster");
+        AdaptiveMediaEventArgs? clicked = null;
+        card.MediaClicked += (s, e) => clicked = e;
+        Click(Find<Button>(card.FrameworkElement!).First());
+        await Task.Delay(200);
+        Assert(IsShown(player), "player should be shown after clicking the poster");
+        Assert(clicked is null, "inline playback must not raise MediaClicked");
     }
 
     private static async Task UnknownElementFallback(MainPage page)
