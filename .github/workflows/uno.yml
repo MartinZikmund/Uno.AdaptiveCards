@@ -8,10 +8,6 @@ on:
     paths: [ 'source/uno/**', 'samples/**', '.github/workflows/uno.yml' ]
   workflow_dispatch:
 
-concurrency:
-  group: uno-ci-${{ github.ref }}
-  cancel-in-progress: false
-
 defaults:
   run:
     working-directory: source/uno
