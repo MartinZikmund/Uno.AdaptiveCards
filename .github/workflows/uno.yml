@@ -39,12 +39,19 @@ jobs:
         run: dotnet build AdaptiveCards.Visualizer.Uno -c Release -p:EnableMobileTargets=true -p:OverrideTargetFrameworks="net10.0-desktop%3Bnet10.0-browserwasm%3Bnet10.0-android"
       - name: Interaction self-tests (desktop, headless)
         run: |
-          sudo apt-get update && sudo apt-get install -y xvfb
+          sudo apt-get update && sudo apt-get install -y xvfb vlc-bin vlc-plugin-base libvlc-dev
           dotnet build AdaptiveCards.Visualizer.Uno -c Release -p:OverrideTargetFrameworks=net10.0-desktop
           # Judge by the report: native components (media player) can crash during X11 teardown after the run.
           xvfb-run -a -s "-screen 0 1600x1200x24" dotnet AdaptiveCards.Visualizer.Uno/bin/Release/net10.0-desktop/AdaptiveCards.Visualizer.Uno.dll --selftest "$RUNNER_TEMP/selftest.txt" || true
           cat "$RUNNER_TEMP/selftest.txt"
           grep -q ", 0 failed" "$RUNNER_TEMP/selftest.txt"
+      - name: Interaction self-tests (WebAssembly, headless Chromium)
+        run: |
+          dotnet publish AdaptiveCards.Visualizer.Uno -c Release -f net10.0-browserwasm -o "$RUNNER_TEMP/wasm"
+          (cd "$RUNNER_TEMP/wasm/wwwroot" && python3 -m http.server 8765 >/dev/null 2>&1 &)
+          npm install --prefix "$RUNNER_TEMP/pw" playwright@1.49.1
+          npx --prefix "$RUNNER_TEMP/pw" playwright install --with-deps chromium
+          NODE_PATH="$RUNNER_TEMP/pw/node_modules" node build/wasm-selftest.js http://127.0.0.1:8765/ "$RUNNER_TEMP/wasm-selftest.png"
       - name: Render all samples (desktop, headless)
         run: |
           xvfb-run -a -s "-screen 0 1600x1200x24" dotnet AdaptiveCards.Visualizer.Uno/bin/Release/net10.0-desktop/AdaptiveCards.Visualizer.Uno.dll --screenshots "$RUNNER_TEMP/screenshots" "v1.6"
@@ -87,7 +94,7 @@ jobs:
             adb install -r AdaptiveCards.Visualizer.Uno/bin/Release/net10.0-android/dev.zikmund.adaptivecards.visualizer-Signed.apk
             adb logcat -c
             adb shell monkey -p dev.zikmund.adaptivecards.visualizer -c android.intent.category.LAUNCHER 1
-            for i in $(seq 1 120); do if adb logcat -d | grep -q "SELFTEST DONE"; then break; fi; sleep 5; done
+            for i in $(seq 1 240); do if adb logcat -d | grep -q "SELFTEST DONE"; then break; fi; sleep 5; done
             adb logcat -d | grep "SELFTEST" || true
             adb logcat -d | grep -q "SELFTEST DONE OK"
 
@@ -149,6 +156,6 @@ jobs:
           xcrun simctl boot "$DEVICE"
           xcrun simctl install "$DEVICE" "$APP"
           (xcrun simctl launch --console-pty "$DEVICE" dev.zikmund.adaptivecards.visualizer > "$RUNNER_TEMP/ios.log" 2>&1 &)
-          for i in $(seq 1 120); do if grep -q "SELFTEST DONE" "$RUNNER_TEMP/ios.log"; then break; fi; sleep 5; done
+          for i in $(seq 1 240); do if grep -q "SELFTEST DONE" "$RUNNER_TEMP/ios.log"; then break; fi; sleep 5; done
           grep "SELFTEST" "$RUNNER_TEMP/ios.log" || tail -50 "$RUNNER_TEMP/ios.log"
           grep -q "SELFTEST DONE OK" "$RUNNER_TEMP/ios.log"

@@ -84,12 +84,17 @@ Use `-p:OverrideTargetFrameworks=...` to build a specific subset.
   controls (typing, checking, invoking buttons and menu items via automation peers) and assert on the raised events:
   submit/execute input gathering, validation (required, regex, ranges), associated inputs, inline ShowCard,
   ToggleVisibility, OpenUrl, overflow menus, disabled actions, `requires` fallback, custom renderers, select actions,
-  inline actions, RTL, host configs and dynamic typeahead.
+  inline actions, RTL, host configs and dynamic typeahead. They also render every sample card under `samples/`
+  (failing on any renderer exception or unexpected error), play a video from a resource resolver stream and check that
+  its WebVTT caption is displayed, and check action sentiment colors and button press feedback.
+  `AC_SELFTEST_FILTER=<substring>` runs a subset.
 
 ```bash
 # Desktop (headless on Linux)
 xvfb-run -a dotnet AdaptiveCards.Visualizer.Uno/bin/Debug/net10.0-desktop/AdaptiveCards.Visualizer.Uno.dll --selftest results.txt
-# WebAssembly: open the published app with ?selftest – results are written to the browser console
+# WebAssembly: open the published app with ?selftest – results are written to the browser console, or headless:
+node build/wasm-selftest.js http://localhost:8000/   # needs playwright
+# Android / iOS: build with -p:SelfTestOnLaunch=true – results go to the device log (SELFTEST ...)
 ```
 
 ### Screenshots
@@ -102,13 +107,13 @@ xvfb-run -a dotnet AdaptiveCards.Visualizer.Uno/bin/Debug/net10.0-desktop/Adapti
 
 ## Platform status
 
-| Head | Build | Verified at runtime |
+| Head | Build | Verified at runtime (CI) |
 |---|---|---|
-| Desktop (Skia: Linux/X11, Windows, macOS) | ✅ CI (Linux, Windows) | ✅ all sample cards rendered + interaction self-tests (Linux/X11 headless, Win32) |
-| WebAssembly (Skia) | ✅ CI | ✅ interaction self-tests in headless Chromium |
-| Android | ✅ CI | ✅ interaction self-tests on an Android emulator (API 34) |
-| iOS | ✅ CI | ✅ interaction self-tests on the iOS simulator |
-| Windows App SDK | ✅ CI (msbuild) | ✅ interaction self-tests (unpackaged, self-contained) |
+| Desktop (Skia: Linux/X11, Windows, macOS) | ✅ CI (Linux, Windows) | ✅ all self-tests incl. all samples and media playback with captions (Linux/X11 headless, Win32) + screenshots of all samples |
+| WebAssembly (Skia) | ✅ CI | ✅ all self-tests in headless Chromium |
+| Android | ✅ CI | ✅ all self-tests on an Android emulator (API 34) |
+| iOS | ✅ CI | ✅ all self-tests on the iOS simulator |
+| Windows App SDK | ✅ CI (msbuild) | ✅ all self-tests (unpackaged, self-contained) |
 
 ## Differences from the WinUI 3 renderer
 
@@ -119,6 +124,7 @@ The port is faithful to the WinUI 3 implementation; deliberate differences are d
 * `ImageSet` supports the 1.6 `style` (`stacked`, `grid`) and `offset` properties (ported from the JS renderer).
 * `Input.ChoiceSet` supports dynamic typeahead (`choices.data` / `Data.Query`) through `ChoicesProvider`.
 * Actions honor `requires` (fall back when unmet).
+* `Media.captionSources` are rendered on every head (WebVTT/SRT overlay on Uno, `TimedTextSource` on Windows App SDK).
 * A few shared-model serialization bugs are fixed (e.g. `role` on `Action.OpenUrl`, `captionSources` on `Media`).
 
 Uno Platform gaps discovered during the port are tracked in [`UPSTREAM_GAPS.md`](UPSTREAM_GAPS.md) and filed as

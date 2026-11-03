@@ -152,6 +152,33 @@ namespace AdaptiveCards.Rendering.Uno
         private static void SetMediaSourceHelper(
             MediaPlayerElement mediaElement, AdaptiveMedia adaptiveMedia, AdaptiveRenderContext renderContext, MediaSource mediaSrc)
         {
+#if HAS_UNO
+            // TimedTextSource/ExternalTimedTextSources are not implemented on Uno (issue #1): captions are rendered by
+            // WebVttCaptions as an overlay on the player. Only one caption track is shown (no track picker).
+            foreach (var captionSource in adaptiveMedia.CaptionSources)
+            {
+                if (!s_supportedCaptionTypes.Contains(captionSource.MimeType))
+                {
+                    continue;
+                }
+
+                var captionUrl = Util.GetUrlFromString(renderContext.HostConfig, captionSource.Url);
+                if (captionUrl == null)
+                {
+                    renderContext.AddWarning(
+                        WarningStatusCode.AssetLoadFailed,
+                        "Specified URI:" + captionSource.Url + " for Media Text Sources is not valid. Text sources loading has failed.");
+                    continue;
+                }
+
+                WebVttCaptions.Attach(mediaElement, captionSource, captionUrl, renderContext);
+                break;
+            }
+
+            mediaElement.Source = new MediaPlaybackItem(mediaSrc);
+            StartPlayback(mediaElement);
+            return;
+#else
             foreach (var captionSource in adaptiveMedia.CaptionSources)
             {
                 if (!s_supportedCaptionTypes.Contains(captionSource.MimeType))
@@ -225,23 +252,55 @@ namespace AdaptiveCards.Rendering.Uno
             }
 
             mediaElement.Source = playbackItem;
+            StartPlayback(mediaElement);
+#endif
         }
 
-        private static void HandleMediaResourceResolverCompleted(
-            IAsyncOperation<IRandomAccessStream> operation,
-            AsyncStatus status,
+        /// <summary>
+        /// The source is only set once the user clicked the poster, so playback should start as soon as the media opens.
+        /// (The WinUI3 renderer intends this but never achieves it; AutoPlay is not honored for a source assigned after
+        /// the click on Uno either.)
+        /// </summary>
+        private static void StartPlayback(MediaPlayerElement mediaElement)
+        {
+            if (mediaElement.MediaPlayer is not { } player)
+            {
+                mediaElement.AutoPlay = true;
+                return;
+            }
+
+            player.MediaOpened += (sender, args) => sender.Play();
+            try
+            {
+                player.Play();
+            }
+            catch (Exception)
+            {
+                // Media not opened yet; MediaOpened starts playback.
+            }
+        }
+
+        private static async Task LoadMediaFromResolverAsync(
+            IAdaptiveCardResourceResolver resourceResolver,
+            Uri mediaSourceUrl,
             MediaPlayerElement mediaElement,
             string mimeType,
             AdaptiveMedia adaptiveMedia,
             AdaptiveRenderContext renderContext)
         {
-            if (status == AsyncStatus.Completed && operation.GetResults() is { } randomAccessStream)
+            try
             {
-                _ = mediaElement.DispatcherQueue.TryEnqueue(async () =>
+                var randomAccessStream = await resourceResolver.GetResourceStreamAsync(new AdaptiveCardGetResourceStreamArgs(mediaSourceUrl)).AsTask();
+                if (randomAccessStream != null)
                 {
                     var mediaSrc = await CreateMediaSourceFromStreamAsync(randomAccessStream, mimeType);
                     SetMediaSourceHelper(mediaElement, adaptiveMedia, renderContext, mediaSrc);
-                });
+                }
+            }
+            catch (Exception e)
+            {
+                renderContext.TryGetRenderResult()?.Warnings.Add(
+                    new AdaptiveWarning(WarningStatusCode.AssetLoadFailed, "Media could not be loaded: " + e.Message));
             }
         }
 
@@ -301,9 +360,10 @@ namespace AdaptiveCards.Rendering.Uno
                 }
                 else
                 {
-                    var getResourceStreamOperation = resourceResolver.GetResourceStreamAsync(new AdaptiveCardGetResourceStreamArgs(mediaSourceUrl));
-                    getResourceStreamOperation.Completed = (operation, status) =>
-                        HandleMediaResourceResolverCompleted(operation, status, mediaElement, mimeType, adaptiveMedia, renderContext);
+                    // The WinUI3 renderer uses IAsyncOperation.Completed + GetResults(). On Uno, Completed is raised on the UI
+                    // thread before the underlying task completes, so GetResults() deadlocks the UI thread (issue #10).
+                    // Awaiting the operation is equivalent and works everywhere.
+                    _ = LoadMediaFromResolverAsync(resourceResolver, mediaSourceUrl, mediaElement, mimeType, adaptiveMedia, renderContext);
                 }
 
                 // Deviation: the C++ (WinUI3) casts the MediaPlayer sender to MediaElement, which never succeeds, so the

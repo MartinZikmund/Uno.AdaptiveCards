@@ -40,6 +40,7 @@
   <!-- Embed the sample cards and host configs from the repository. -->
   <ItemGroup>
     <EmbeddedResource Include="..\..\..\samples\v1.*\**\*.json" LogicalName="Samples/%(RecursiveDir)%(Filename)%(Extension)" Link="SampleCards\%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="SelfTests\Assets\selftest.mp4" LogicalName="SelfTests/selftest.mp4" />
     <EmbeddedResource Include="..\..\..\samples\HostConfig\*.json" LogicalName="HostConfig/%(Filename)%(Extension)" Link="SampleHostConfigs\%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

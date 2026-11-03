@@ -68,7 +68,12 @@ namespace AdaptiveCards.Rendering.Uno
                     }
 
                     mediaElement.Visibility = Visibility.Collapsed;
+#if HAS_UNO
+                    // Host the player with a caption overlay (TimedTextSource is not implemented on Uno, issue #1).
+                    XamlHelpers.AppendXamlElementToPanel(WebVttCaptions.CreateHost(mediaElement), mediaStackPanel);
+#else
                     XamlHelpers.AppendXamlElementToPanel(mediaElement, mediaStackPanel);
+#endif
                 }
 
                 if (touchTargetUIElement is ButtonBase touchTargetAsButtonBase)

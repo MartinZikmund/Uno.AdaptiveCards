@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.Json.Nodes;
 using AdaptiveCards.ObjectModel.Uno;
 using AdaptiveCards.Rendering.Uno;
@@ -63,8 +64,15 @@ public static class SelfTestRunner
     {
         var lines = new List<string>();
         int passed = 0, failed = 0;
+        var filter = Environment.GetEnvironmentVariable("AC_SELFTEST_FILTER");
         foreach (var (name, test) in Tests)
         {
+            if (!string.IsNullOrEmpty(filter) && !name.Contains(filter, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            Console.WriteLine("SELFTEST RUN " + name);
             try
             {
                 await test(page);
@@ -115,6 +123,10 @@ public static class SelfTestRunner
         ("Dynamic typeahead (Data.Query) choices", DynamicTypeahead),
         ("Media raises MediaClicked when inline playback is off", MediaClicked),
         ("Media inline playback shows the player", MediaInline),
+        ("All sample cards render without errors", AllSamplesRender),
+        ("Action sentiment styles use host config colors", ActionSentiment),
+        ("Pressed buttons give visual feedback", PressFeedback),
+        ("Media plays from a resource resolver stream with captions", MediaPlaybackWithCaptions),
     ];
 
     // ---------- helpers ----------
@@ -523,6 +535,153 @@ public static class SelfTestRunner
         await Task.Delay(200);
         Assert(IsShown(player), "player should be shown after clicking the poster");
         Assert(clicked is null, "inline playback must not raise MediaClicked");
+    }
+
+    private sealed class EmbeddedMediaResolver : IAdaptiveCardResourceResolver
+    {
+        public Windows.Foundation.IAsyncOperation<Windows.Storage.Streams.IRandomAccessStream> GetResourceStreamAsync(AdaptiveCardGetResourceStreamArgs args) =>
+            Task.Run<Windows.Storage.Streams.IRandomAccessStream>(() =>
+            {
+                var stream = typeof(SelfTestRunner).Assembly.GetManifestResourceStream("SelfTests/selftest.mp4")!;
+                var memory = new MemoryStream();
+                stream.CopyTo(memory);
+                memory.Position = 0;
+                return memory.AsRandomAccessStream();
+            }).AsAsyncOperation();
+    }
+
+    private static async Task MediaPlaybackWithCaptions(MainPage page)
+    {
+        page.Renderer.ResourceResolvers.Set("selftest", new EmbeddedMediaResolver());
+        var vtt = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("WEBVTT\n\n00:00.000 --> 00:59.000\nHello captions\n"));
+        var card = await RenderAsync(page, $$"""
+        {"type":"AdaptiveCard","version":"1.6","body":[{"type":"Media","poster":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mP8z8BQz0AEYBxVSF+FAAhKDveksOjmAAAAAElFTkSuQmCC",
+          "sources":[{"mimeType":"video/mp4","url":"selftest://video/selftest.mp4"}],
+          "captionSources":[{"mimeType":"vtt","label":"English","url":"data:text/vtt;base64,{{vtt}}"}]}]}
+        """);
+        Click(Find<Button>(card.FrameworkElement!).First());
+        var player = Find<MediaPlayerElement>(card.FrameworkElement!).Single();
+
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        Windows.Media.Playback.MediaPlaybackState state = default;
+        TimeSpan position = default;
+        while (DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(250);
+            state = player.MediaPlayer?.PlaybackSession?.PlaybackState ?? default;
+            position = player.MediaPlayer?.PlaybackSession?.Position ?? default;
+            if (position > TimeSpan.FromMilliseconds(300))
+            {
+                break;
+            }
+        }
+
+        Assert(position > TimeSpan.FromMilliseconds(300), $"media did not play (state {state}, position {position}); warnings: {string.Join("; ", card.Warnings)}");
+
+#if HAS_UNO
+        // On Uno heads captions are rendered by the renderer's WebVTT overlay.
+        await Task.Delay(500);
+        var caption = Find<TextBlock>(card.FrameworkElement!).FirstOrDefault(t => t.Text == "Hello captions");
+        Assert(caption is not null && IsShown(caption), "caption overlay should show the active cue");
+#endif
+    }
+
+    private static Windows.UI.Color? BrushColor(Brush? brush) => (brush as SolidColorBrush)?.Color;
+
+    private static async Task ActionSentiment(MainPage page)
+    {
+        var card = await RenderAsync(page, """
+        {"type":"AdaptiveCard","version":"1.5","body":[],"actions":[
+          {"type":"Action.Submit","title":"Yes","style":"positive"},{"type":"Action.Submit","title":"No","style":"destructive"}]}
+        """);
+        var accent = page.Renderer.HostConfig.ContainerStyles.Default.ForegroundColors.Accent.Default;
+        var attention = page.Renderer.HostConfig.ContainerStyles.Default.ForegroundColors.Attention.Default;
+
+        var yes = FindButton(card, "Yes");
+        var yesRoot = Find<Grid>(yes).FirstOrDefault(g => g.Name == "RootGrid");
+        var yesBackground = BrushColor(yesRoot?.Background) ?? BrushColor(yes.Background);
+        Assert(yesBackground == accent, $"positive action background {yesBackground} should be the accent color {accent}");
+
+        var no = FindButton(card, "No");
+        var noForeground = BrushColor(no.Foreground);
+        Assert(noForeground == attention, $"destructive action foreground {noForeground} should be the attention color {attention}");
+    }
+
+    private static async Task PressFeedback(MainPage page)
+    {
+        var card = await RenderAsync(page, """
+        {"type":"AdaptiveCard","version":"1.5","body":[{"type":"Container","items":[{"type":"TextBlock","text":"Press me"}],
+          "selectAction":{"type":"Action.Submit","title":"select"}}]}
+        """);
+        var button = Find<Button>(card.FrameworkElement!).First(b => TextOf(b.Content).Contains("Press me"));
+        VisualStateManager.GoToState(button, "Pressed", true);
+        await Task.Delay(400);
+#if HAS_UNO
+        var root = Find<Grid>(button).First(g => g.Name == "RootGrid");
+        var scale = root.RenderTransform as ScaleTransform;
+        Assert(scale is not null && scale.ScaleX < 1, $"pressed RootGrid should be scaled down (ScaleX={scale?.ScaleX})");
+        VisualStateManager.GoToState(button, "Normal", true);
+        await Task.Delay(400);
+        Assert(scale!.ScaleX == 1, $"released RootGrid should be scaled back (ScaleX={scale.ScaleX})");
+#else
+        // Windows App SDK uses PointerDownThemeAnimation exactly like the WinUI3 renderer.
+        VisualStateManager.GoToState(button, "Normal", true);
+#endif
+    }
+
+    // Negative test cards that are expected to fail parsing (see AdaptiveCards.ObjectModel.Uno.Tests/SamplesTests).
+    private static readonly string[] s_expectedParseFailures =
+    [
+        "v1.0/Tests/AdaptiveCard.MissingVersion.json",
+        "v1.0/Tests/TypeIsRequired.json",
+        "v1.1/Tests/InvalidMediaMix.json",
+        "v1.2/Tests/Action.DuplicateIds.json",
+        "v1.2/Tests/Action.NestedDuplicateIds.json",
+        "v1.6/Tests/Carousel.NestedForbiddenElements.json",
+    ];
+
+    private static async Task AllSamplesRender(MainPage page)
+    {
+        var failures = new List<string>();
+        int rendered = 0;
+        foreach (var (name, resource) in SampleRepository.SampleCards)
+        {
+            var json = SampleRepository.Read(resource);
+            if (!json.Contains("\"AdaptiveCard\"", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            bool expectedFailure = s_expectedParseFailures.Contains(name);
+            try
+            {
+                var card = page.RenderCard(json);
+                await Task.Delay(30);
+                var renderErrors = card?.Errors.Where(e => e.StatusCode == ErrorStatusCode.RenderFailed).ToList() ?? [];
+                if (expectedFailure)
+                {
+                    if (card?.FrameworkElement is not null)
+                    {
+                        failures.Add($"{name}: expected a parse failure");
+                    }
+                }
+                else if (card?.FrameworkElement is null || renderErrors.Count > 0)
+                {
+                    failures.Add($"{name}: {string.Join("; ", card?.Errors.Select(e => e.Message) ?? [])}");
+                }
+                else
+                {
+                    rendered++;
+                }
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{name}: {ex.GetType().Name} {ex.Message}");
+            }
+        }
+
+        Assert(failures.Count == 0, $"{failures.Count} cards failed ({rendered} rendered): " + string.Join(" | ", failures.Take(10)));
+        Assert(rendered > 300, "expected more than 300 rendered sample cards, got " + rendered);
     }
 
     private static async Task UnknownElementFallback(MainPage page)
