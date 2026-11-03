@@ -99,8 +99,26 @@ jobs:
       # WinUI class libraries containing XAML must be built with msbuild (Uno.Sdk UNOB0008).
       - name: Build renderer
         run: msbuild AdaptiveCards.Rendering.Uno/AdaptiveCards.Rendering.Uno.csproj -restore -p:Configuration=Release -p:OverrideTargetFrameworks="net10.0-windows10.0.26100%3Bnet10.0-desktop%3Bnet10.0-android" -v:m
-      - name: Build visualizer (WinAppSdk)
-        run: msbuild AdaptiveCards.Visualizer.Uno/AdaptiveCards.Visualizer.Uno.csproj -restore -p:Configuration=Release -p:OverrideTargetFrameworks=net10.0-windows10.0.26100 -v:m
+      - name: Build visualizer (WinAppSdk, unpackaged)
+        run: msbuild AdaptiveCards.Visualizer.Uno/AdaptiveCards.Visualizer.Uno.csproj -restore -p:Configuration=Release -p:OverrideTargetFrameworks=net10.0-windows10.0.26100 -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true -p:RuntimeIdentifier=win-x64 -v:m
+      - name: Interaction self-tests (WinAppSdk)
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Recurse AdaptiveCards.Visualizer.Uno/bin/Release/net10.0-windows10.0.26100 -Filter AdaptiveCards.Visualizer.Uno.exe | Select-Object -First 1
+          $out = Join-Path $env:RUNNER_TEMP "selftest-winappsdk.txt"
+          $p = Start-Process -FilePath $exe.FullName -ArgumentList "--selftest", "`"$out`"" -PassThru
+          if (-not $p.WaitForExit(300000)) { $p.Kill(); throw "self-tests timed out" }
+          Get-Content $out
+          if ($p.ExitCode -ne 0) { throw "self-tests failed" }
+      - name: Interaction self-tests (Skia desktop, Win32)
+        shell: pwsh
+        run: |
+          dotnet build AdaptiveCards.Visualizer.Uno -c Release -p:OverrideTargetFrameworks=net10.0-desktop
+          $out = Join-Path $env:RUNNER_TEMP "selftest-desktop.txt"
+          $p = Start-Process -FilePath dotnet -ArgumentList "AdaptiveCards.Visualizer.Uno/bin/Release/net10.0-desktop/AdaptiveCards.Visualizer.Uno.dll", "--selftest", "`"$out`"" -PassThru
+          if (-not $p.WaitForExit(300000)) { $p.Kill(); throw "self-tests timed out" }
+          Get-Content $out
+          if ($p.ExitCode -ne 0) { throw "self-tests failed" }
 
   macos:
     name: macOS (iOS)
