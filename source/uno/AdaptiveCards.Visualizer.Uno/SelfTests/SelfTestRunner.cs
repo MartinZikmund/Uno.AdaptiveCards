@@ -73,6 +73,11 @@ public static class SelfTestRunner
             }
 
             Console.WriteLine("SELFTEST RUN " + name);
+            // Watchdog on a thread-pool timer: reports a test that does not finish even if the UI thread is blocked.
+            var started = DateTime.UtcNow;
+            using var watchdog = new System.Threading.Timer(
+                _ => Console.WriteLine($"SELFTEST STILL RUNNING {name} ({(int)(DateTime.UtcNow - started).TotalSeconds}s)"),
+                null, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20));
             try
             {
                 await test(page);

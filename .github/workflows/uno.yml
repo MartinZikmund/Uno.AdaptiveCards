@@ -167,6 +167,22 @@ jobs:
           xcrun simctl boot "$DEVICE"
           xcrun simctl install "$DEVICE" "$APP"
           (xcrun simctl launch --console-pty "$DEVICE" dev.zikmund.adaptivecards.visualizer > "$RUNNER_TEMP/ios.log" 2>&1 &)
-          for i in $(seq 1 240); do if grep -q "SELFTEST DONE" "$RUNNER_TEMP/ios.log"; then break; fi; sleep 5; done
+          for i in $(seq 1 240); do
+            if grep -q "SELFTEST DONE" "$RUNNER_TEMP/ios.log"; then break; fi
+            # A test stuck for 3+ minutes will not recover; stop waiting.
+            if grep -q "SELFTEST STILL RUNNING .* (1[89][0-9]s)" "$RUNNER_TEMP/ios.log"; then break; fi
+            sleep 5
+          done
           grep "SELFTEST" "$RUNNER_TEMP/ios.log" || tail -50 "$RUNNER_TEMP/ios.log"
-          grep -q "SELFTEST DONE OK" "$RUNNER_TEMP/ios.log"
+          if ! grep -q "SELFTEST DONE OK" "$RUNNER_TEMP/ios.log"; then
+            xcrun simctl io "$DEVICE" screenshot "$RUNNER_TEMP/ios-selftest.png" || true
+            echo "--- app output (non-SELFTEST) ---"; grep -v "SELFTEST" "$RUNNER_TEMP/ios.log" | tail -150
+            echo "--- crash reports ---"; ls -t ~/Library/Logs/DiagnosticReports/ 2>/dev/null | head; for f in $(ls -t ~/Library/Logs/DiagnosticReports/*AdaptiveCards* 2>/dev/null | head -1); do head -150 "$f"; done
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-selftest-screen
+          path: ${{ runner.temp }}/ios-selftest.png
+          if-no-files-found: ignore
