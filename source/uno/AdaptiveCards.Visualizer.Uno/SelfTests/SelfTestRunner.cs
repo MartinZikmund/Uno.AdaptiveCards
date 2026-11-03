@@ -17,7 +17,11 @@ public static class SelfTestRunner
 
     public static bool TryStart(MainPage page)
     {
-#if __WASM__
+#if SELFTEST_ON_LAUNCH
+        // CI builds for device/emulator heads (Android, iOS): run on launch and report to the console/logcat.
+        _ = RunToConsoleAsync(page);
+        return true;
+#elif __WASM__
         // In the browser: http://host/?selftest . Results go to the browser console.
         var search = global::Uno.Foundation.WebAssemblyRuntime.InvokeJS("window.location.search") ?? string.Empty;
         if (!search.Contains("selftest", StringComparison.OrdinalIgnoreCase))
@@ -25,7 +29,7 @@ public static class SelfTestRunner
             return false;
         }
 
-        _ = RunInBrowserAsync(page);
+        _ = RunToConsoleAsync(page);
         return true;
 #else
         var args = Environment.GetCommandLineArgs();
@@ -41,8 +45,8 @@ public static class SelfTestRunner
 #endif
     }
 
-#if __WASM__
-    private static async Task RunInBrowserAsync(MainPage page)
+#if __WASM__ || SELFTEST_ON_LAUNCH
+    private static async Task RunToConsoleAsync(MainPage page)
     {
         await Task.Delay(1000);
         var (_, failed, report) = await RunAllAsync(page, null, exit: false);

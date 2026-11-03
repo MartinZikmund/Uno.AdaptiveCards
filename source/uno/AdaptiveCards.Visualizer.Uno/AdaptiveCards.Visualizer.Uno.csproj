@@ -21,6 +21,11 @@
     </UnoFeatures>
   </PropertyGroup>
 
+  <!-- CI: run the interaction self-tests at launch (used for the Android emulator / iOS simulator jobs). -->
+  <PropertyGroup Condition="'$(SelfTestOnLaunch)'=='true'">
+    <DefineConstants>$(DefineConstants);SELFTEST_ON_LAUNCH</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\AdaptiveCards.Rendering.Uno\AdaptiveCards.Rendering.Uno.csproj" />
   </ItemGroup>

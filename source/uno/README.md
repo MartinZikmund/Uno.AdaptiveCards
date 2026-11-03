@@ -58,6 +58,9 @@ foreach (var warning in rendered.Warnings) { /* … */ }
 * `renderer.ResourceResolvers` – resolve custom URI schemes for images (`IAdaptiveCardResourceResolver`).
 * `renderer.OverrideStyles` – XAML style overrides, using the same style keys as the WinUI 3 renderer
   (`Adaptive.TextBlock`, `Adaptive.Action.Positive`, `Adaptive.Input.Text`, …).
+* `renderer.ChoicesProvider` – dynamic typeahead for filtered `Input.ChoiceSet`s using `choices.data`
+  (`Data.Query`): implement `IAdaptiveChoicesProvider.GetChoicesAsync(AdaptiveChoicesQuery, CancellationToken)` and
+  return the choices for `query.Dataset` / `query.QueryText` (`Count`/`Skip` are passed through).
 
 ## Building
 
@@ -72,6 +75,23 @@ Target frameworks are selected per OS (`Directory.Build.props`): desktop and Web
 when not on Linux (or with `-p:EnableMobileTargets=true` when the workloads are installed), Windows App SDK on Windows.
 Use `-p:OverrideTargetFrameworks=...` to build a specific subset.
 
+### Tests
+
+* `AdaptiveCards.ObjectModel.Uno.Tests` – ~700 xUnit tests: the shared C++ model unit tests (EverythingBagel,
+  fallback, id collisions, requirements, markdown, DATE/TIME, tables, carousels, …) plus parsing and round-tripping
+  every card under `samples/`.
+* Renderer interaction self-tests run inside the real app on any head – they render cards and drive the generated
+  controls (typing, checking, invoking buttons and menu items via automation peers) and assert on the raised events:
+  submit/execute input gathering, validation (required, regex, ranges), associated inputs, inline ShowCard,
+  ToggleVisibility, OpenUrl, overflow menus, disabled actions, `requires` fallback, custom renderers, select actions,
+  inline actions, RTL, host configs and dynamic typeahead.
+
+```bash
+# Desktop (headless on Linux)
+xvfb-run -a dotnet AdaptiveCards.Visualizer.Uno/bin/Debug/net10.0-desktop/AdaptiveCards.Visualizer.Uno.dll --selftest results.txt
+# WebAssembly: open the published app with ?selftest – results are written to the browser console
+```
+
 ### Screenshots
 
 The desktop head of the visualizer can render all sample cards headlessly:
@@ -80,12 +100,24 @@ The desktop head of the visualizer can render all sample cards headlessly:
 xvfb-run -a dotnet AdaptiveCards.Visualizer.Uno/bin/Debug/net10.0-desktop/AdaptiveCards.Visualizer.Uno.dll --screenshots ./out v1.6
 ```
 
+## Platform status
+
+| Head | Build | Verified at runtime |
+|---|---|---|
+| Desktop (Skia: Linux/X11, Windows, macOS) | ✅ CI (Linux) | ✅ all sample cards rendered + interaction self-tests (Linux, headless) |
+| WebAssembly (Skia) | ✅ CI | ✅ interaction self-tests in headless Chromium |
+| Android | ✅ CI | – (no emulator in CI) |
+| iOS | ✅ CI (library) | – |
+| Windows App SDK | CI (msbuild) | – |
+
 ## Differences from the WinUI 3 renderer
 
 The port is faithful to the WinUI 3 implementation; deliberate differences are documented in code comments. Notable ones:
 
 * JSON types are `System.Text.Json.Nodes` (`JsonObject`, `JsonNode`) instead of `Windows.Data.Json`.
 * `Carousel` honors `timer`, `autoLoop` and vertical `orientation` (ignored by WinUI 3).
+* `ImageSet` supports the 1.6 `style` (`stacked`, `grid`) and `offset` properties (ported from the JS renderer).
+* `Input.ChoiceSet` supports dynamic typeahead (`choices.data` / `Data.Query`) through `ChoicesProvider`.
 * Actions honor `requires` (fall back when unmet).
 * A few shared-model serialization bugs are fixed (e.g. `role` on `Action.OpenUrl`, `captionSources` on `Media`).
 
