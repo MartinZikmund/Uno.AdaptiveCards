@@ -126,6 +126,8 @@ jobs:
           $out = Join-Path $env:RUNNER_TEMP "selftest-winappsdk.txt"
           $p = Start-Process -FilePath $exe.FullName -ArgumentList "--selftest", "`"$out`"" -PassThru
           if (-not $p.WaitForExit(300000)) { $p.Kill(); throw "self-tests timed out" }
+          $crash = Join-Path $env:TEMP "AdaptiveCards.Visualizer.crash.txt"
+          if (Test-Path $crash) { Get-Content $crash }
           Get-Content $out
           if ($p.ExitCode -ne 0) { throw "self-tests failed" }
       - name: Interaction self-tests (Skia desktop, Win32)
@@ -135,6 +137,8 @@ jobs:
           $out = Join-Path $env:RUNNER_TEMP "selftest-desktop.txt"
           $p = Start-Process -FilePath dotnet -ArgumentList "AdaptiveCards.Visualizer.Uno/bin/Release/net10.0-desktop/AdaptiveCards.Visualizer.Uno.dll", "--selftest", "`"$out`"" -PassThru
           if (-not $p.WaitForExit(300000)) { $p.Kill(); throw "self-tests timed out" }
+          $crash = Join-Path $env:TEMP "AdaptiveCards.Visualizer.crash.txt"
+          if (Test-Path $crash) { Get-Content $crash }
           Get-Content $out
           if ($p.ExitCode -ne 0) { throw "self-tests failed" }
 

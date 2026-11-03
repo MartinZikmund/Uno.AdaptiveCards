@@ -234,6 +234,23 @@ public sealed partial class MainPage : Page
         }
 
         _narrowLayout = narrow;
+
+        // Change the layout outside of the layout pass that raised SizeChanged.
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            try
+            {
+                ApplyLayout(narrow);
+            }
+            catch (Exception ex)
+            {
+                Log("Layout switch failed: " + ex.Message);
+            }
+        });
+    }
+
+    private void ApplyLayout(bool narrow)
+    {
         var wide = narrow ? Visibility.Collapsed : Visibility.Visible;
         SamplePanel.Visibility = wide;
         JsonEditor.Visibility = wide;

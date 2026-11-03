@@ -13,6 +13,23 @@ public partial class App : Application
     public App()
     {
         this.InitializeComponent();
+
+        // Leave a trace of startup crashes (CI prints this file when the self-tests produce no report).
+        UnhandledException += (s, e) => WriteCrash(e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (s, e) => WriteCrash(e.ExceptionObject as Exception);
+    }
+
+    internal static void WriteCrash(Exception? exception)
+    {
+        try
+        {
+            var text = "CRASH " + exception;
+            Console.WriteLine(text);
+            System.IO.File.WriteAllText(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "AdaptiveCards.Visualizer.crash.txt"), text);
+        }
+        catch
+        {
+        }
     }
 
     protected Window? MainWindow { get; private set; }
