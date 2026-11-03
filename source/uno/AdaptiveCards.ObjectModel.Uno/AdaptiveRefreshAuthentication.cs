@@ -15,7 +15,10 @@ namespace AdaptiveCards.ObjectModel.Uno
 
         public IList<string> UserIds { get; } = new List<string>();
 
-        internal bool ShouldSerialize() => Action != null || UserIds.Count > 0;
+        /// <summary>Schema <c>refresh.expires</c>: ISO 8601 time after which the card should be refreshed (not in the WinUI3 projection).</summary>
+        public string Expires { get; set; } = string.Empty;
+
+        internal bool ShouldSerialize() => Action != null || UserIds.Count > 0 || !string.IsNullOrEmpty(Expires);
 
         public JsonObject ToJson()
         {
@@ -36,6 +39,11 @@ namespace AdaptiveCards.ObjectModel.Uno
                 root["userIds"] = ids;
             }
 
+            if (!string.IsNullOrEmpty(Expires))
+            {
+                root["expires"] = Expires;
+            }
+
             return root;
         }
 
@@ -47,7 +55,7 @@ namespace AdaptiveCards.ObjectModel.Uno
             }
 
             var json = ParseUtil.ThrowIfNotJsonObject(jsonNode);
-            var refresh = new AdaptiveRefresh { Action = ParseUtil.GetAction(context, json, "action") };
+            var refresh = new AdaptiveRefresh { Action = ParseUtil.GetAction(context, json, "action"), Expires = ParseUtil.GetString(json, "expires") };
             foreach (var id in ParseUtil.GetStringArray(json, "userIds"))
             {
                 refresh.UserIds.Add(id);
@@ -239,6 +247,35 @@ namespace AdaptiveCards.ObjectModel.Uno
             }
 
             return authentication;
+        }
+    }
+
+    /// <summary>Schema <c>metadata</c> of a card (not in the WinUI3 projection).</summary>
+    public sealed class AdaptiveMetadata
+    {
+        /// <summary>URL to the card's web representation.</summary>
+        public string WebUrl { get; set; } = string.Empty;
+
+        public JsonObject ToJson()
+        {
+            var root = new JsonObject();
+            if (!string.IsNullOrEmpty(WebUrl))
+            {
+                root["webUrl"] = WebUrl;
+            }
+
+            return root;
+        }
+
+        internal static AdaptiveMetadata Deserialize(JsonNode jsonNode)
+        {
+            if (jsonNode == null)
+            {
+                return null;
+            }
+
+            var json = ParseUtil.ThrowIfNotJsonObject(jsonNode);
+            return new AdaptiveMetadata { WebUrl = ParseUtil.GetString(json, "webUrl") };
         }
     }
 }

@@ -818,12 +818,17 @@ namespace AdaptiveCards.Rendering.Uno
             var hostConfig = renderContext.HostConfig;
             var inputsConfig = hostConfig.Inputs;
 
-            // Render the label and add it to the stack panel
+            // Render the label and add it to the stack panel (schema 1.6 inline labels go next to the input instead)
             var label = RenderInputLabel(adaptiveInput, renderContext);
-            AppendXamlElementToPanel(label, inputStackPanel);
+            var inputBase = adaptiveInput as AdaptiveInputElementBase;
+            bool inlineLabel = label != null && inputBase?.LabelPosition == InputLabelPosition.Inline;
+            if (!inlineLabel)
+            {
+                AppendXamlElementToPanel(label, inputStackPanel);
+            }
 
             // Render the spacing between the label and the input
-            if (label != null)
+            if (label != null && !inlineLabel)
             {
                 var labelSpacing = inputsConfig.Label.InputSpacing;
                 uint spacing = Util.GetSpacingSizeFromSpacing(hostConfig, labelSpacing);
@@ -910,7 +915,86 @@ namespace AdaptiveCards.Rendering.Uno
                 }
             }
 
+            if (inputBase?.InputStyle == InputStyle.RevealOnHover && actualUIElement is Control revealControl)
+            {
+                ApplyRevealOnHover(revealControl);
+            }
+
+            if (inlineLabel)
+            {
+                return CreateInlineLabelLayout(label, inputStackPanel, inputBase, renderContext);
+            }
+
             return inputStackPanel;
+        }
+
+        /// <summary>
+        /// Schema 1.6 labelPosition "inline" (from the JS renderer): the label sits to the left of the input, vertically
+        /// centered, taking labelWidth (percent, or "Npx") or the host config's inputs.label.width percent.
+        /// </summary>
+        private static UIElement CreateInlineLabelLayout(
+            UIElement label, Panel inputPanel, AdaptiveInputElementBase input, AdaptiveRenderContext renderContext)
+        {
+            var grid = new Grid();
+            GridLength labelColumn, inputColumn;
+            if (AdaptiveInputElementBase.TryParseLabelWidth(input.LabelWidth, out var size, out var isPixels))
+            {
+                labelColumn = isPixels ? new GridLength(size) : new GridLength(size, GridUnitType.Star);
+                inputColumn = isPixels ? new GridLength(1, GridUnitType.Star) : new GridLength(100 - size, GridUnitType.Star);
+            }
+            else
+            {
+                var percent = renderContext.HostConfig.Inputs.Label.Width;
+                labelColumn = new GridLength(percent, GridUnitType.Star);
+                inputColumn = new GridLength(100 - percent, GridUnitType.Star);
+            }
+
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = labelColumn });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = inputColumn });
+            if (label is FrameworkElement labelElement)
+            {
+                labelElement.VerticalAlignment = VerticalAlignment.Center;
+                labelElement.Margin = new Thickness(0, 0, Util.GetSpacingSizeFromSpacing(renderContext.HostConfig, Spacing.Small), 0);
+            }
+
+            Grid.SetColumn((FrameworkElement)label, 0);
+            Grid.SetColumn(inputPanel, 1);
+            grid.Children.Add(label);
+            grid.Children.Add(inputPanel);
+            return grid;
+        }
+
+        /// <summary>
+        /// Schema 1.6 inputStyle "revealOnHover" (from the JS renderer): the input reads like plain text (no border or
+        /// background) until it is hovered or focused.
+        /// </summary>
+        private static void ApplyRevealOnHover(Control control)
+        {
+            var transparent = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            bool hovered = false;
+
+            void Update()
+            {
+                bool reveal = hovered || control.FocusState != FocusState.Unfocused;
+                if (reveal)
+                {
+                    control.ClearValue(Control.BorderBrushProperty);
+                    control.ClearValue(Control.BackgroundProperty);
+                }
+                else
+                {
+                    control.BorderBrush = transparent;
+                    control.Background = transparent;
+                }
+
+                AutomationProperties.SetItemStatus(control, reveal ? "revealed" : "hidden");
+            }
+
+            control.PointerEntered += (s, e) => { hovered = true; Update(); };
+            control.PointerExited += (s, e) => { hovered = false; Update(); };
+            control.GotFocus += (s, e) => Update();
+            control.LostFocus += (s, e) => Update();
+            Update();
         }
 
         public static (UIElement, Border) HandleInputLayoutAndValidation(

@@ -17,5 +17,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\AdaptiveCards.ObjectModel.Uno\AdaptiveCards.ObjectModel.Uno.csproj" />
+    <!-- Reference build of the renderer: used to check its public API against the WinUI3 IDL. -->
+    <ProjectReference Include="..\AdaptiveCards.Rendering.Uno\AdaptiveCards.Rendering.Uno.csproj" SetTargetFramework="TargetFramework=net10.0" />
   </ItemGroup>
 </Project>

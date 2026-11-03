@@ -195,6 +195,18 @@ namespace AdaptiveCards.ObjectModel.Uno
             (Uno.ImageSetStyle.Grid, "grid"),
         });
 
+        public static readonly EnumMap<InputLabelPosition> InputLabelPosition = new(new[]
+        {
+            (Uno.InputLabelPosition.Above, "above"),
+            (Uno.InputLabelPosition.Inline, "inline"),
+        });
+
+        public static readonly EnumMap<InputStyle> InputStyle = new(new[]
+        {
+            (Uno.InputStyle.Default, "default"),
+            (Uno.InputStyle.RevealOnHover, "revealOnHover"),
+        });
+
         public static readonly EnumMap<ActionMode> Mode = new(new[]
         {
             (ActionMode.Primary, "primary"),

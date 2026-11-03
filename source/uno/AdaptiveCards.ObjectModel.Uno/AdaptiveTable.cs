@@ -251,6 +251,7 @@ namespace AdaptiveCards.ObjectModel.Uno
             base.PopulateKnownProperties(knownProperties);
             knownProperties.Add("columns");
             knownProperties.Add("firstRowAsHeaders");
+            knownProperties.Add("firstRowAsHeader");
             knownProperties.Add("gridStyle");
             knownProperties.Add("horizontalCellContentAlignment");
             knownProperties.Add("rows");
@@ -347,7 +348,8 @@ namespace AdaptiveCards.ObjectModel.Uno
 
             table.ShowGridLines = ParseUtil.GetBool(json, "showGridLines", true, false);
             table.GridStyle = ParseUtil.GetEnumValue(json, "gridStyle", ContainerStyle.None, EnumStrings.ContainerStyle);
-            table.FirstRowAsHeaders = ParseUtil.GetBool(json, "firstRowAsHeaders", true, false);
+            // The schema spells it "firstRowAsHeader"; the shared model and JS renderer "firstRowAsHeaders". Accept both.
+            table.FirstRowAsHeaders = ParseUtil.GetBool(json, "firstRowAsHeaders", ParseUtil.GetBool(json, "firstRowAsHeader", true, false), false);
             table.HorizontalCellContentAlignment = ParseUtil.GetOptionalEnumValue(json, "horizontalCellContentAlignment", EnumStrings.HAlignment);
             table.VerticalCellContentAlignment = ParseUtil.GetOptionalEnumValue(
                 json, "verticalCellContentAlignment", EnumStrings.VerticalContentAlignment);

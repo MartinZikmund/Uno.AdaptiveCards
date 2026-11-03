@@ -129,6 +129,12 @@ namespace AdaptiveCards.ObjectModel.Uno
 
     public enum ActionMode { Primary = 0, Secondary }
 
+    /// <summary>Schema 1.6 <c>labelPosition</c> of inputs (not in the WinUI3 projection; from the JS renderer).</summary>
+    public enum InputLabelPosition { Above = 0, Inline }
+
+    /// <summary>Schema 1.6 <c>inputStyle</c> of inputs (not in the WinUI3 projection; from the JS renderer).</summary>
+    public enum InputStyle { Default = 0, RevealOnHover }
+
     public enum ActionRole { Button = 0, Link, Tab, Menu, MenuItem }
 
     public enum CarouselOrientation { Horizontal = 0, Vertical }

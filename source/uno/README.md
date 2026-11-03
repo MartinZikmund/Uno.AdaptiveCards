@@ -80,6 +80,13 @@ Use `-p:OverrideTargetFrameworks=...` to build a specific subset.
 * `AdaptiveCards.ObjectModel.Uno.Tests` – ~700 xUnit tests: the shared C++ model unit tests (EverythingBagel,
   fallback, id collisions, requirements, markdown, DATE/TIME, tables, carousels, …) plus parsing and round-tripping
   every card under `samples/`.
+  Two coverage tests guard completeness:
+  * **API parity** – parses the WinUI3 IDL files (`source/uwp/.../AdaptiveCards.ObjectModel.Uwp.idl` and
+    `AdaptiveCards.Rendering.WinUI3.idl`) and checks that every runtimeclass, interface and enum, with each of its
+    properties, methods, events and enum values, exists in the port (109 object model types / 368 members,
+    80 renderer types / 213 members).
+  * **Schema coverage** – checks every type and property of `schemas/1.6.0/adaptive-card.json` (including inherited
+    `allOf` properties) is modeled (37 types / 355 properties).
 * Renderer interaction self-tests run inside the real app on any head – they render cards and drive the generated
   controls (typing, checking, invoking buttons and menu items via automation peers) and assert on the raised events:
   submit/execute input gathering, validation (required, regex, ranges), associated inputs, inline ShowCard,
@@ -123,7 +130,11 @@ The port is faithful to the WinUI 3 implementation; deliberate differences are d
 * `Carousel` honors `timer`, `autoLoop` and vertical `orientation` (ignored by WinUI 3).
 * `ImageSet` supports the 1.6 `style` (`stacked`, `grid`) and `offset` properties (ported from the JS renderer).
 * `Input.ChoiceSet` supports dynamic typeahead (`choices.data` / `Data.Query`) through `ChoicesProvider`.
-* Actions honor `requires` (fall back when unmet).
+* Actions honor `requires` (fall back when unmet) and expose it as `Requirements`.
+* Schema features the WinUI 3 renderer does not implement are supported, following the JS renderer: input
+  `labelPosition: "inline"` with `labelWidth` (percent or `"Npx"`, default `inputs.label.width` = 30 in host config),
+  `inputStyle: "revealOnHover"`, card `metadata.webUrl`, `refresh.expires`, and the schema spelling
+  `firstRowAsHeader` on tables.
 * `Media.captionSources` are rendered on every head: `TimedTextSource` on Windows App SDK; on Uno heads a WebVTT/SRT
   renderer with a closed-captions track picker, styled cue markup and WebVTT cue settings (`line`, `position`, `size`,
   `align`).

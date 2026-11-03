@@ -225,6 +225,9 @@ namespace AdaptiveCards.Rendering.Uno
 
         public Spacing InputSpacing { get; set; } = Spacing.Default;
 
+        /// <summary>Default width (percent) of inline input labels (<c>inputs.label.width</c>, as in the JS renderer).</summary>
+        public uint Width { get; set; } = 30;
+
         public AdaptiveInputLabelConfig RequiredInputs { get; set; } = new AdaptiveInputLabelConfig();
 
         public AdaptiveInputLabelConfig OptionalInputs { get; set; } = new AdaptiveInputLabelConfig();
@@ -232,6 +235,10 @@ namespace AdaptiveCards.Rendering.Uno
         internal void Merge(JsonObject json)
         {
             InputSpacing = ParseUtil.GetEnumValue(json, "inputSpacing", InputSpacing, EnumStrings.Spacing);
+            if (json["width"] is System.Text.Json.Nodes.JsonValue width && width.TryGetValue<double>(out var widthValue) && widthValue >= 0 && widthValue <= 100)
+            {
+                Width = (uint)widthValue;
+            }
             if (GetObject(json, "requiredInputs") is { } required)
             {
                 RequiredInputs.Merge(required);

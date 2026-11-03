@@ -316,7 +316,11 @@ namespace AdaptiveCards.ObjectModel.Uno
 
         internal uint InternalIdValue { get; set; }
 
-        internal IList<AdaptiveRequirement> Requirements { get; } = new List<AdaptiveRequirement>();
+        /// <summary>
+        /// Host features this action requires (schema <c>requires</c> on actions). Not projected by WinUI3, which still
+        /// honors it through fallback; exposed here so hosts can inspect it.
+        /// </summary>
+        public IList<AdaptiveRequirement> Requirements { get; } = new List<AdaptiveRequirement>();
 
         protected virtual void PopulateKnownProperties(ISet<string> knownProperties)
         {
@@ -444,12 +448,48 @@ namespace AdaptiveCards.ObjectModel.Uno
 
         public string Label { get; set; } = string.Empty;
 
+        /// <summary>Schema 1.6 <c>labelPosition</c>: the label above the input (default) or inline to its left.</summary>
+        public InputLabelPosition LabelPosition { get; set; }
+
+        /// <summary>
+        /// Schema 1.6 <c>labelWidth</c> for inline labels: a percentage of the input's width (<c>"30"</c>) or a pixel
+        /// width (<c>"80px"</c>). Empty uses the host config default (<c>inputs.label.width</c>).
+        /// </summary>
+        public string LabelWidth { get; set; } = string.Empty;
+
+        /// <summary>Schema 1.6 <c>inputStyle</c>: <c>revealOnHover</c> shows the input chrome only on hover/focus.</summary>
+        public InputStyle InputStyle { get; set; }
+
         protected override void PopulateKnownProperties(ISet<string> knownProperties)
         {
             base.PopulateKnownProperties(knownProperties);
             knownProperties.Add("isRequired");
             knownProperties.Add("errorMessage");
             knownProperties.Add("label");
+            knownProperties.Add("labelPosition");
+            knownProperties.Add("labelWidth");
+            knownProperties.Add("inputStyle");
+        }
+
+        /// <summary>Parses a labelWidth value (number 0-100 = percent, or "Npx"); returns false for invalid values.</summary>
+        public static bool TryParseLabelWidth(string value, out double size, out bool isPixels)
+        {
+            size = 0;
+            isPixels = false;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            var text = value.Trim();
+            if (text.EndsWith("px", StringComparison.OrdinalIgnoreCase))
+            {
+                isPixels = true;
+                text = text.Substring(0, text.Length - 2);
+            }
+
+            return double.TryParse(text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out size)
+                && size >= 0 && (isPixels || size <= 100);
         }
 
         public override JsonObject ToJson()
@@ -470,6 +510,21 @@ namespace AdaptiveCards.ObjectModel.Uno
                 root["label"] = Label;
             }
 
+            if (LabelPosition != InputLabelPosition.Above)
+            {
+                root["labelPosition"] = EnumStrings.InputLabelPosition.ToString(LabelPosition);
+            }
+
+            if (TryParseLabelWidth(LabelWidth, out var size, out var isPixels))
+            {
+                root["labelWidth"] = isPixels ? (JsonNode)(LabelWidth.Trim()) : JsonValue.Create(size);
+            }
+
+            if (InputStyle != InputStyle.Default)
+            {
+                root["inputStyle"] = EnumStrings.InputStyle.ToString(InputStyle);
+            }
+
             return root;
         }
 
@@ -481,6 +536,19 @@ namespace AdaptiveCards.ObjectModel.Uno
             IsRequired = ParseUtil.GetBool(json, "isRequired", false);
             ErrorMessage = ParseUtil.GetString(json, "errorMessage");
             Label = ParseUtil.GetString(json, "label");
+            LabelPosition = ParseUtil.GetEnumValue(json, "labelPosition", InputLabelPosition.Above, EnumStrings.InputLabelPosition);
+            InputStyle = ParseUtil.GetEnumValue(json, "inputStyle", InputStyle.Default, EnumStrings.InputStyle);
+            var labelWidth = json["labelWidth"];
+            var labelWidthText = labelWidth is JsonValue v && v.TryGetValue<double>(out var number)
+                ? number.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : ParseUtil.AsString(labelWidth) ?? string.Empty;
+            if (labelWidth != null && !TryParseLabelWidth(labelWidthText, out _, out _))
+            {
+                context.Warnings.Add(new AdaptiveWarning(WarningStatusCode.InvalidValue, "Invalid labelWidth '" + labelWidthText + "' (expected 0-100 or a pixel value such as \"80px\")"));
+                labelWidthText = string.Empty;
+            }
+
+            LabelWidth = labelWidthText;
         }
     }
 }

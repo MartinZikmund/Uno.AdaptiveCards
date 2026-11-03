@@ -14,7 +14,7 @@ namespace AdaptiveCards.ObjectModel.Uno
 
         private static readonly HashSet<string> s_knownProperties = new(StringComparer.Ordinal)
         {
-            "type", "version", "body", "actions", "fallbackText", "backgroundImage", "refresh", "authentication", "minHeight",
+            "type", "version", "body", "actions", "fallbackText", "backgroundImage", "refresh", "authentication", "metadata", "minHeight",
             "speak", "lang", "verticalContentAlignment", "style", "selectAction", "height", "$schema", "rtl",
         };
 
@@ -53,6 +53,9 @@ namespace AdaptiveCards.ObjectModel.Uno
 
         public AdaptiveRefresh Refresh { get; set; }
 
+        /// <summary>Schema <c>metadata</c> (webUrl); not in the WinUI3 projection.</summary>
+        public AdaptiveMetadata Metadata { get; set; }
+
         public AdaptiveAuthentication Authentication { get; set; }
 
         public bool? Rtl { get; set; }
@@ -84,6 +87,11 @@ namespace AdaptiveCards.ObjectModel.Uno
             if (Authentication != null && Authentication.ShouldSerialize())
             {
                 root["authentication"] = Authentication.ToJson();
+            }
+
+            if (Metadata != null && !string.IsNullOrEmpty(Metadata.WebUrl))
+            {
+                root["metadata"] = Metadata.ToJson();
             }
 
             if (!string.IsNullOrEmpty(Speak))
@@ -273,6 +281,7 @@ namespace AdaptiveCards.ObjectModel.Uno
             card.BackgroundImage = AdaptiveBackgroundImage.Deserialize(ParseUtil.ExtractJsonValue(json, "backgroundImage"));
             card.Refresh = AdaptiveRefresh.Deserialize(context, ParseUtil.ExtractJsonValue(json, "refresh"));
             card.Authentication = AdaptiveAuthentication.Deserialize(context, ParseUtil.ExtractJsonValue(json, "authentication"));
+            card.Metadata = AdaptiveMetadata.Deserialize(ParseUtil.ExtractJsonValue(json, "metadata"));
 
             card.Style = ParseUtil.GetEnumValue(json, "style", ContainerStyle.None, EnumStrings.ContainerStyle);
             context.SetParentalContainerStyle(card.Style);

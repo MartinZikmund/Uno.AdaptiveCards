@@ -135,6 +135,7 @@ public static class SelfTestRunner
         ("Pressed buttons give visual feedback", PressFeedback),
         ("Media plays from a resource resolver stream with captions", MediaPlaybackWithCaptions),
         ("Caption tracks: picker, styled cues and cue settings", CaptionTracks),
+        ("Inline input labels and revealOnHover inputs (schema 1.6)", InlineLabelsAndRevealOnHover),
     ];
 
     // ---------- helpers ----------
@@ -664,6 +665,58 @@ public static class SelfTestRunner
         // Windows App SDK presents captions through the platform (TimedTextSource + transport controls).
         await Task.CompletedTask;
 #endif
+    }
+
+    private static async Task InlineLabelsAndRevealOnHover(MainPage page)
+    {
+        var card = await RenderAsync(page, """
+        {"type":"AdaptiveCard","version":"1.6","body":[
+          {"type":"Input.Text","id":"name","label":"Name","labelPosition":"inline","labelWidth":40},
+          {"type":"Input.Number","id":"age","label":"Age","labelPosition":"inline","labelWidth":"120px"},
+          {"type":"Input.Text","id":"city","label":"City","labelPosition":"inline"},
+          {"type":"Input.Text","id":"above","label":"Above"},
+          {"type":"Input.Text","id":"note","label":"Note","inputStyle":"revealOnHover"}]}
+        """);
+        var root = card.FrameworkElement!;
+        await Task.Delay(300 + (int.TryParse(Environment.GetEnvironmentVariable("AC_SELFTEST_HOLD_MS"), out var hold) ? hold : 0));
+
+        static string LabelText(RichTextBlock label) =>
+            string.Concat(label.Blocks.OfType<Microsoft.UI.Xaml.Documents.Paragraph>()
+                .SelectMany(p => p.Inlines.OfType<Microsoft.UI.Xaml.Documents.Run>()).Select(r => r.Text));
+
+        Grid InlineGrid(string labelText) => Find<Grid>(root).FirstOrDefault(g =>
+            g.ColumnDefinitions.Count == 2 && g.Children.Count == 2 && g.Children[0] is RichTextBlock label && LabelText(label) == labelText)
+            ?? throw new TestFailure($"no inline label layout for '{labelText}'");
+
+        var nameGrid = InlineGrid("Name");
+        AssertEqual(GridUnitType.Star, nameGrid.ColumnDefinitions[0].Width.GridUnitType, "labelWidth 40 is a proportion");
+        Assert(nameGrid.ColumnDefinitions[0].Width.Value == 40 && nameGrid.ColumnDefinitions[1].Width.Value == 60, "labelWidth 40 -> 40*/60*");
+        var nameLabel = (FrameworkElement)nameGrid.Children[0];
+        var nameInput = Find<TextBox>(nameGrid).Single();
+        var labelPos = nameLabel.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point(0, 0));
+        var inputPos = nameInput.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point(0, 0));
+        Assert(labelPos.X < inputPos.X, $"inline label should be left of the input (label x {labelPos.X}, input x {inputPos.X})");
+        var labelMid = labelPos.Y + nameLabel.ActualHeight / 2;
+        Assert(labelMid >= inputPos.Y && labelMid <= inputPos.Y + nameInput.ActualHeight, "inline label should be vertically centered on the input");
+
+        var ageGrid = InlineGrid("Age");
+        AssertEqual(GridUnitType.Pixel, ageGrid.ColumnDefinitions[0].Width.GridUnitType, "labelWidth 120px is absolute");
+        Assert(ageGrid.ColumnDefinitions[0].Width.Value == 120, "labelWidth 120px");
+
+        var cityGrid = InlineGrid("City");
+        Assert(cityGrid.ColumnDefinitions[0].Width.Value == page.Renderer.HostConfig.Inputs.Label.Width, "default inline width from host config");
+
+        Assert(!Find<Grid>(root).Any(g => g.ColumnDefinitions.Count == 2 && g.Children.Count == 2 && g.Children[0] is RichTextBlock l && LabelText(l) == "Above"),
+            "labels without labelPosition stay above the input");
+
+        var note = Find<TextBox>(root).Single(t => AutomationProperties.GetName(t) == "Note");
+        AssertEqual("hidden", AutomationProperties.GetItemStatus(note), "revealOnHover input starts without chrome");
+        Assert(note.BorderBrush is SolidColorBrush { Color.A: 0 }, "revealOnHover border should be transparent until hovered/focused");
+        if (note.Focus(FocusState.Programmatic))
+        {
+            await Task.Delay(200);
+            AssertEqual("revealed", AutomationProperties.GetItemStatus(note), "focused revealOnHover input shows its chrome");
+        }
     }
 
     private static Windows.UI.Color? BrushColor(Brush? brush) => (brush as SolidColorBrush)?.Color;
