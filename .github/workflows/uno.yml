@@ -41,8 +41,10 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y xvfb
           dotnet build AdaptiveCards.Visualizer.Uno -c Release -p:OverrideTargetFrameworks=net10.0-desktop
-          xvfb-run -a -s "-screen 0 1600x1200x24" dotnet AdaptiveCards.Visualizer.Uno/bin/Release/net10.0-desktop/AdaptiveCards.Visualizer.Uno.dll --selftest "$RUNNER_TEMP/selftest.txt" || (cat "$RUNNER_TEMP/selftest.txt"; exit 1)
+          # Judge by the report: native components (media player) can crash during X11 teardown after the run.
+          xvfb-run -a -s "-screen 0 1600x1200x24" dotnet AdaptiveCards.Visualizer.Uno/bin/Release/net10.0-desktop/AdaptiveCards.Visualizer.Uno.dll --selftest "$RUNNER_TEMP/selftest.txt" || true
           cat "$RUNNER_TEMP/selftest.txt"
+          grep -q ", 0 failed" "$RUNNER_TEMP/selftest.txt"
       - name: Render all samples (desktop, headless)
         run: |
           xvfb-run -a -s "-screen 0 1600x1200x24" dotnet AdaptiveCards.Visualizer.Uno/bin/Release/net10.0-desktop/AdaptiveCards.Visualizer.Uno.dll --screenshots "$RUNNER_TEMP/screenshots" "v1.6"

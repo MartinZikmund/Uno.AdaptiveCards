@@ -106,8 +106,8 @@ xvfb-run -a dotnet AdaptiveCards.Visualizer.Uno/bin/Debug/net10.0-desktop/Adapti
 |---|---|---|
 | Desktop (Skia: Linux/X11, Windows, macOS) | ✅ CI (Linux) | ✅ all sample cards rendered + interaction self-tests (Linux, headless) |
 | WebAssembly (Skia) | ✅ CI | ✅ interaction self-tests in headless Chromium |
-| Android | ✅ CI | – (no emulator in CI) |
-| iOS | ✅ CI (library) | – |
+| Android | ✅ CI | ✅ interaction self-tests on an Android emulator (API 34) |
+| iOS | ✅ CI | ✅ interaction self-tests on the iOS simulator |
 | Windows App SDK | CI (msbuild) | – |
 
 ## Differences from the WinUI 3 renderer
