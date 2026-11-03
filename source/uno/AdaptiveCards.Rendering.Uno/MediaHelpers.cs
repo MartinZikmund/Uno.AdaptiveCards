@@ -263,12 +263,24 @@ namespace AdaptiveCards.Rendering.Uno
         /// </summary>
         private static void StartPlayback(MediaPlayerElement mediaElement)
         {
+            mediaElement.AutoPlay = true;
             if (mediaElement.MediaPlayer is not { } player)
             {
-                mediaElement.AutoPlay = true;
+                // Uno creates the element's MediaPlayer when its template is applied, possibly after the source is set,
+                // and only copies AutoPlay to it on Loaded: start playback once the player is attached.
+                long token = 0;
+                token = mediaElement.RegisterPropertyChangedCallback(MediaPlayerElement.MediaPlayerProperty, (sender, dp) =>
+                {
+                    if (sender is MediaPlayerElement element && element.MediaPlayer is not null)
+                    {
+                        element.UnregisterPropertyChangedCallback(MediaPlayerElement.MediaPlayerProperty, token);
+                        StartPlayback(element);
+                    }
+                });
                 return;
             }
 
+            player.AutoPlay = true;
             player.MediaOpened += (sender, args) => sender.Play();
             try
             {
