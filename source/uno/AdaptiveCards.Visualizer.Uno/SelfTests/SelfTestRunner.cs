@@ -218,6 +218,23 @@ public static class SelfTestRunner
         }
     }
 
+    /// <summary>Polls until <paramref name="condition"/> holds (layout on slow devices/emulators), up to <paramref name="timeoutMs"/>.</summary>
+    private static async Task<bool> WaitUntilAsync(Func<bool> condition, int timeoutMs = 5000)
+    {
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (!condition())
+        {
+            if (DateTime.UtcNow > deadline)
+            {
+                return false;
+            }
+
+            await Task.Delay(100);
+        }
+
+        return true;
+    }
+
     private static void AssertEqual(string? expected, string? actual, string what) =>
         Assert(expected == actual, $"{what}: expected '{expected}', got '{actual}'");
 
@@ -693,6 +710,8 @@ public static class SelfTestRunner
         Assert(nameGrid.ColumnDefinitions[0].Width.Value == 40 && nameGrid.ColumnDefinitions[1].Width.Value == 60, "labelWidth 40 -> 40*/60*");
         var nameLabel = (FrameworkElement)nameGrid.Children[0];
         var nameInput = Find<TextBox>(nameGrid).Single();
+        await WaitUntilAsync(() => nameInput.ActualWidth > 0 && nameLabel.ActualWidth > 0
+            && nameInput.TransformToVisual(root).TransformPoint(default).X > nameLabel.TransformToVisual(root).TransformPoint(default).X);
         var labelPos = nameLabel.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point(0, 0));
         var inputPos = nameInput.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point(0, 0));
         Assert(labelPos.X < inputPos.X, $"inline label should be left of the input (label x {labelPos.X}, input x {inputPos.X})");
