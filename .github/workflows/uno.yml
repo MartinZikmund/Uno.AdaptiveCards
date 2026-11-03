@@ -20,6 +20,7 @@ jobs:
   linux:
     name: Linux (object model tests, desktop, wasm, android)
     runs-on: ubuntu-latest
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -64,6 +65,7 @@ jobs:
   android-emulator:
     name: Android emulator (interaction self-tests)
     runs-on: ubuntu-latest
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -107,6 +109,7 @@ jobs:
   windows:
     name: Windows (WinAppSdk, desktop, android)
     runs-on: windows-latest
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -142,6 +145,7 @@ jobs:
   macos:
     name: macOS (iOS)
     runs-on: macos-26
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -154,6 +158,7 @@ jobs:
       - name: Build renderer (iOS)
         run: dotnet build AdaptiveCards.Rendering.Uno -c Release -p:OverrideTargetFrameworks=net10.0-ios
       - name: Build visualizer (iOS simulator, self-test on launch)
+        timeout-minutes: 45
         run: dotnet build AdaptiveCards.Visualizer.Uno -c Release -p:OverrideTargetFrameworks=net10.0-ios -p:RuntimeIdentifier=iossimulator-arm64 -p:ValidateXcodeVersion=false -p:SelfTestOnLaunch=true
       - name: Interaction self-tests (iOS simulator)
         run: |
