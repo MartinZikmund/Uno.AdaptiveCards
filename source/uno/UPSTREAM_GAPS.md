@@ -15,6 +15,7 @@ Versions: Uno.Sdk 7.0.0-dev.130 / Uno.WinUI 7.0.0-dev.2538.
 | [#8](https://github.com/MartinZikmund/Uno.AdaptiveCards/issues/8) | Missing `FontFamily` falls back to a monospace font on WebAssembly | default host config font ("Segoe UI") | map to `XamlAutoFontFamily` on non-Windows |
 | [#9](https://github.com/MartinZikmund/Uno.AdaptiveCards/issues/9) | Vertical `PipsPager` realizes a single pip | vertical carousel page indicator | `VerticalPipsIndicator` |
 | [#10](https://github.com/MartinZikmund/Uno.AdaptiveCards/issues/10) | `IAsyncOperation.Completed` is raised before the task completes, so `GetResults()` in the handler blocks the UI thread | resource resolver results (`GetResourceStreamAsync`) | await the operation (`AsTask()`) instead of `Completed` + `GetResults()` |
+| [#11](https://github.com/MartinZikmund/Uno.AdaptiveCards/issues/11) | `MediaPlayerElement.AutoPlay` not applied to a `MediaPlayer` created after `Source` is set (Android opens paused) | inline media playback after the poster click | start playback once `MediaPlayerProperty` is set; set `MediaPlayer.AutoPlay` too |
 
 Additional behavioral differences handled in the port (not necessarily bugs):
 
