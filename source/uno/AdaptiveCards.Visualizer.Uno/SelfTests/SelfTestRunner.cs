@@ -701,33 +701,31 @@ public static class SelfTestRunner
             string.Concat(label.Blocks.OfType<Microsoft.UI.Xaml.Documents.Paragraph>()
                 .SelectMany(p => p.Inlines.OfType<Microsoft.UI.Xaml.Documents.Run>()).Select(r => r.Text));
 
-        Grid InlineGrid(string labelText) => Find<Grid>(root).FirstOrDefault(g =>
-            g.ColumnDefinitions.Count == 2 && g.Children.Count == 2 && g.Children[0] is RichTextBlock label && LabelText(label) == labelText)
+        InlineLabelPanel InlinePanel(string labelText) => Find<InlineLabelPanel>(root).FirstOrDefault(p =>
+            p.Children.Count == 2 && p.Children[0] is RichTextBlock label && LabelText(label) == labelText)
             ?? throw new TestFailure($"no inline label layout for '{labelText}'");
 
-        var nameGrid = InlineGrid("Name");
-        AssertEqual(GridUnitType.Star, nameGrid.ColumnDefinitions[0].Width.GridUnitType, "labelWidth 40 is a proportion");
-        Assert(nameGrid.ColumnDefinitions[0].Width.Value == 40 && nameGrid.ColumnDefinitions[1].Width.Value == 60, "labelWidth 40 -> 40*/60*");
-        var nameLabel = (FrameworkElement)nameGrid.Children[0];
-        var nameInputColumn = (FrameworkElement)nameGrid.Children[1];
-        Assert(Grid.GetColumn(nameLabel) == 0 && Grid.GetColumn(nameInputColumn) == 1, "label in column 0, input in column 1");
+        var namePanel = InlinePanel("Name");
+        Assert(namePanel.LabelWidth == 40 && !namePanel.IsPixelWidth, "labelWidth 40 is a percentage");
+        var nameLabel = (FrameworkElement)namePanel.Children[0];
+        var nameInputColumn = (FrameworkElement)namePanel.Children[1];
         Assert(Find<TextBox>(nameInputColumn).Any(), "the input sits in the second column");
-        await WaitUntilAsync(() => nameInputColumn.ActualWidth > 0 && nameLabel.ActualWidth > 0
+        await WaitUntilAsync(() => namePanel.ActualWidth > 0
             && nameInputColumn.TransformToVisual(root).TransformPoint(default).X > nameLabel.TransformToVisual(root).TransformPoint(default).X);
         var labelPos = nameLabel.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point(0, 0));
         var inputPos = nameInputColumn.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point(0, 0));
-        Assert(labelPos.X < inputPos.X, $"inline label should be left of the input (label x {labelPos.X}, input column x {inputPos.X}, grid width {nameGrid.ActualWidth})");
+        Assert(labelPos.X < inputPos.X, $"inline label should be left of the input (label x {labelPos.X}, input column x {inputPos.X}, panel width {namePanel.ActualWidth})");
+        Assert(Math.Abs((inputPos.X - labelPos.X) - namePanel.ActualWidth * 0.40) < 2, $"label column should be 40% of {namePanel.ActualWidth} (got {inputPos.X - labelPos.X})");
         var labelMid = labelPos.Y + nameLabel.ActualHeight / 2;
         Assert(labelMid >= inputPos.Y && labelMid <= inputPos.Y + nameInputColumn.ActualHeight, "inline label should be vertically centered on the input");
 
-        var ageGrid = InlineGrid("Age");
-        AssertEqual(GridUnitType.Pixel, ageGrid.ColumnDefinitions[0].Width.GridUnitType, "labelWidth 120px is absolute");
-        Assert(ageGrid.ColumnDefinitions[0].Width.Value == 120, "labelWidth 120px");
+        var agePanel = InlinePanel("Age");
+        Assert(agePanel.IsPixelWidth && agePanel.LabelWidth == 120, "labelWidth 120px is absolute");
 
-        var cityGrid = InlineGrid("City");
-        Assert(cityGrid.ColumnDefinitions[0].Width.Value == page.Renderer.HostConfig.Inputs.Label.Width, "default inline width from host config");
+        var cityPanel = InlinePanel("City");
+        Assert(!cityPanel.IsPixelWidth && cityPanel.LabelWidth == page.Renderer.HostConfig.Inputs.Label.Width, "default inline width from host config");
 
-        Assert(!Find<Grid>(root).Any(g => g.ColumnDefinitions.Count == 2 && g.Children.Count == 2 && g.Children[0] is RichTextBlock l && LabelText(l) == "Above"),
+        Assert(!Find<InlineLabelPanel>(root).Any(p => p.Children[0] is RichTextBlock l && LabelText(l) == "Above"),
             "labels without labelPosition stay above the input");
 
         var note = Find<TextBox>(root).Single(t => AutomationProperties.GetName(t) == "Note");

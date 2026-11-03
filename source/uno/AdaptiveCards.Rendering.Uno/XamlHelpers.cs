@@ -935,33 +935,23 @@ namespace AdaptiveCards.Rendering.Uno
         private static UIElement CreateInlineLabelLayout(
             UIElement label, Panel inputPanel, AdaptiveInputElementBase input, AdaptiveRenderContext renderContext)
         {
-            var grid = new Grid();
-            GridLength labelColumn, inputColumn;
+            var panel = new InlineLabelPanel
+            {
+                LabelSpacing = Util.GetSpacingSizeFromSpacing(renderContext.HostConfig, Spacing.Small),
+            };
             if (AdaptiveInputElementBase.TryParseLabelWidth(input.LabelWidth, out var size, out var isPixels))
             {
-                labelColumn = isPixels ? new GridLength(size) : new GridLength(size, GridUnitType.Star);
-                inputColumn = isPixels ? new GridLength(1, GridUnitType.Star) : new GridLength(100 - size, GridUnitType.Star);
+                panel.LabelWidth = size;
+                panel.IsPixelWidth = isPixels;
             }
             else
             {
-                var percent = renderContext.HostConfig.Inputs.Label.Width;
-                labelColumn = new GridLength(percent, GridUnitType.Star);
-                inputColumn = new GridLength(100 - percent, GridUnitType.Star);
+                panel.LabelWidth = renderContext.HostConfig.Inputs.Label.Width;
             }
 
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = labelColumn });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = inputColumn });
-            if (label is FrameworkElement labelElement)
-            {
-                labelElement.VerticalAlignment = VerticalAlignment.Center;
-                labelElement.Margin = new Thickness(0, 0, Util.GetSpacingSizeFromSpacing(renderContext.HostConfig, Spacing.Small), 0);
-            }
-
-            Grid.SetColumn((FrameworkElement)label, 0);
-            Grid.SetColumn(inputPanel, 1);
-            grid.Children.Add(label);
-            grid.Children.Add(inputPanel);
-            return grid;
+            panel.Children.Add(label);
+            panel.Children.Add(inputPanel);
+            return panel;
         }
 
         /// <summary>
