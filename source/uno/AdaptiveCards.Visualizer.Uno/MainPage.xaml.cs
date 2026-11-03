@@ -173,6 +173,12 @@ public sealed partial class MainPage : Page
         return _renderedCard;
     }
 
+    /// <summary>
+    /// Whether Action.OpenUrl opens the browser. The self-tests turn it off: on iOS the launched browser moves the app
+    /// to the background, which suspends it mid-run.
+    /// </summary>
+    public bool LaunchExternalUrls { get; set; } = true;
+
     private void OnMediaClicked(RenderedAdaptiveCard sender, AdaptiveMediaEventArgs args) =>
         Log($"MediaClicked: {args.Media.Sources.FirstOrDefault()?.Url}");
 
@@ -183,7 +189,7 @@ public sealed partial class MainPage : Page
         {
             case AdaptiveOpenUrlAction openUrl:
                 Log($"Action.OpenUrl: {openUrl.Url}");
-                if (openUrl.Url is { IsAbsoluteUri: true } url)
+                if (LaunchExternalUrls && openUrl.Url is { IsAbsoluteUri: true } url)
                 {
                     try
                     {

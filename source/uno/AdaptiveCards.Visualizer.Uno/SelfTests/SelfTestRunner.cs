@@ -64,6 +64,7 @@ public static class SelfTestRunner
     {
         var lines = new List<string>();
         int passed = 0, failed = 0;
+        page.LaunchExternalUrls = false;
         var filter = Environment.GetEnvironmentVariable("AC_SELFTEST_FILTER");
         foreach (var (name, test) in Tests)
         {
