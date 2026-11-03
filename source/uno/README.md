@@ -93,7 +93,7 @@ Use `-p:OverrideTargetFrameworks=...` to build a specific subset.
 # Desktop (headless on Linux)
 xvfb-run -a dotnet AdaptiveCards.Visualizer.Uno/bin/Debug/net10.0-desktop/AdaptiveCards.Visualizer.Uno.dll --selftest results.txt
 # WebAssembly: open the published app with ?selftest – results are written to the browser console, or headless:
-node build/wasm-selftest.js http://localhost:8000/   # needs playwright
+node ci/wasm-selftest.js http://localhost:8000/   # needs playwright
 # Android / iOS: build with -p:SelfTestOnLaunch=true – results go to the device log (SELFTEST ...)
 ```
 

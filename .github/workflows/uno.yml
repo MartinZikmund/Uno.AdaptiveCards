@@ -51,7 +51,7 @@ jobs:
           (cd "$RUNNER_TEMP/wasm/wwwroot" && python3 -m http.server 8765 >/dev/null 2>&1 &)
           npm install --prefix "$RUNNER_TEMP/pw" playwright@1.49.1
           npx --prefix "$RUNNER_TEMP/pw" playwright install --with-deps chromium
-          NODE_PATH="$RUNNER_TEMP/pw/node_modules" node build/wasm-selftest.js http://127.0.0.1:8765/ "$RUNNER_TEMP/wasm-selftest.png"
+          NODE_PATH="$RUNNER_TEMP/pw/node_modules" node ci/wasm-selftest.js http://127.0.0.1:8765/ "$RUNNER_TEMP/wasm-selftest.png"
       - name: Render all samples (desktop, headless)
         run: |
           xvfb-run -a -s "-screen 0 1600x1200x24" dotnet AdaptiveCards.Visualizer.Uno/bin/Release/net10.0-desktop/AdaptiveCards.Visualizer.Uno.dll --screenshots "$RUNNER_TEMP/screenshots" "v1.6"
