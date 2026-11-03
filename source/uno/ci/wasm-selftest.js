@@ -4,7 +4,11 @@ const { chromium } = require('playwright');
 (async () => {
   const url = process.argv[2];
   // Media self-tests start playback programmatically; allow it without a user gesture.
-  const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
+  // PW_CHANNEL=chrome uses Google Chrome: the open-source Chromium build has no H.264 decoder for the mp4 test clip.
+  const browser = await chromium.launch({
+    channel: process.env.PW_CHANNEL || undefined,
+    args: ['--autoplay-policy=no-user-gesture-required'],
+  });
   const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
   let done = null;
   page.on('console', m => {

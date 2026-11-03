@@ -305,20 +305,27 @@ namespace AdaptiveCards.Rendering.Uno
         }
 
         /// <summary>
-        /// MediaSource.CreateFromStream is not implemented in Uno: the resolved stream is exposed through a data: URI
+        /// MediaSource.CreateFromStream is not implemented in Uno: there the resolved stream is exposed through a data: URI
         /// in the browser and through a temporary file elsewhere.
         /// </summary>
         private static async Task<MediaSource> CreateMediaSourceFromStreamAsync(IRandomAccessStream stream, string mimeType)
         {
+            // Resolver streams are often not cloneable (e.g. MemoryStream.AsRandomAccessStream()), which both
+            // MediaSource.CreateFromStream and CloneStream require: read the content once and work from a copy.
             stream.Seek(0);
             byte[] bytes;
-            using (var source = stream.CloneStream().AsStreamForRead())
             using (var memory = new MemoryStream())
             {
-                await source.CopyToAsync(memory);
+                await stream.AsStreamForRead().CopyToAsync(memory);
                 bytes = memory.ToArray();
             }
 
+#if !HAS_UNO
+            var copy = new InMemoryRandomAccessStream();
+            await copy.WriteAsync(System.Runtime.InteropServices.WindowsRuntime.WindowsRuntimeBufferExtensions.AsBuffer(bytes));
+            copy.Seek(0);
+            return MediaSource.CreateFromStream(copy, mimeType);
+#else
             if (OperatingSystem.IsBrowser())
             {
                 return MediaSource.CreateFromUri(new Uri("data:" + mimeType + ";base64," + Convert.ToBase64String(bytes)));
@@ -336,6 +343,7 @@ namespace AdaptiveCards.Rendering.Uno
             var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "AdaptiveCardsMedia_" + Guid.NewGuid().ToString("N") + extension);
             await File.WriteAllBytesAsync(path, bytes);
             return MediaSource.CreateFromUri(new Uri(path));
+#endif
         }
 
         public static void HandleMediaClick(
